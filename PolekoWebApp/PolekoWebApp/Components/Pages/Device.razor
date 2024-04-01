@@ -1,0 +1,13 @@
+﻿@page "/device/{id?}"
+@attribute [Authorize]
+
+@* device ip *@
+<PageTitle>@(Id ?? "Devices")</PageTitle>
+<h3>Device</h3>
+
+@Id
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+}
