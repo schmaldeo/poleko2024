@@ -40,15 +40,10 @@
     private string? email;
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
-    
-    [CascadingParameter] public EventCallback HandleUsernameChanged { get; set; }
 
     [SupplyParameterFromForm(FormName = "change-email")]
     private InputModel Input { get; set; } = new();
     
-    [Parameter]
-    public EventCallback OnUsernameChanged { get; set; }
-
     protected override async Task OnInitializedAsync()
     {
         user = await UserAccessor.GetRequiredUserAsync(HttpContext);
@@ -66,19 +61,15 @@
         }
 
         var token = await UserManager.GenerateChangeEmailTokenAsync(user, Input.NewEmail);
-        Task[] tasks =
-        [
-            UserManager.ChangeEmailAsync(user, Input.NewEmail, token),
-            UserManager.SetUserNameAsync(user, Input.NewEmail),
-            OnUsernameChanged.InvokeAsync(),
-            HandleUsernameChanged.InvokeAsync(),
-            SignInManager.RefreshSignInAsync(user)
-        ];
-        var t = Task.WhenAll(tasks);
-        if (t.Status == TaskStatus.Faulted)
+
+        var changeEmail = await UserManager.ChangeEmailAsync(user, Input.NewEmail, token);
+        var setUsername = await UserManager.SetUserNameAsync(user, Input.NewEmail);
+        if (!changeEmail.Succeeded || !setUsername.Succeeded)
         {
-            Logger.LogError("Failed to change user's name.");
+            message = "Couldn't change your email.";
+            Logger.LogError("Couldn't change email.");
         }
+        await SignInManager.RefreshSignInAsync(user);
     }
 
     private sealed class InputModel
