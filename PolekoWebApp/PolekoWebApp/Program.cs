@@ -35,7 +35,6 @@ builder.Services.AddIdentityCore<ApplicationUser>()
     .AddDefaultTokenProviders()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
-builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
 builder.Services.Configure<IdentityOptions>(options =>
 {
