@@ -73,6 +73,11 @@
             return;
         }
 
+        // automatically confirm email for every user
+        var token = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+        await UserManager.ConfirmEmailAsync(user, token);
+        await UserManager.SetLockoutEnabledAsync(user, false);
+
         // give the first registered user an admin role
         if (first)
         {
