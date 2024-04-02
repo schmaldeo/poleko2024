@@ -14,48 +14,45 @@
 
 <PageTitle>Register</PageTitle>
 
-@* TODO fix overflow *@
-<MudGrid>
-    <MudItem sm="5" Class="ma-auto">
-        <MudPaper Class="pa-4">
-            <StatusMessage Message="@Message"/>
-            <EditForm Model="@Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
-                <DataAnnotationsValidator/>
-                <h2>Stwórz nowe konto</h2>
-                <hr/>
-                <ValidationSummary class="text-danger" role="alert"/>
-                <div class="mud-input-control mud-input-required mud-input-input-control pb-2">
-                    <div class="mud-input-control-input-container">
-                        <div class="mud-input mud-input-text mud-input-underline">
-                            <InputText @bind-Value="Input.Email" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="username" aria-required="true" placeholder="Email"/>
-                            <ValidationMessage For="() => Input.Email" class="text-danger"/>
-                        </div>
+<MudItem sm="5" Class="ma-auto">
+    <MudPaper Class="pa-4">
+        <StatusMessage Message="@Message"/>
+        <EditForm Model="@Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
+            <DataAnnotationsValidator/>
+            <h2>Stwórz nowe konto</h2>
+            <hr/>
+            <ValidationSummary class="text-danger" role="alert"/>
+            <div class="mud-input-control mud-input-required mud-input-input-control pb-2">
+                <div class="mud-input-control-input-container">
+                    <div class="mud-input mud-input-text mud-input-underline">
+                        <InputText @bind-Value="Input.Email" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="username" aria-required="true" placeholder="Email"/>
+                        <ValidationMessage For="() => Input.Email" class="text-danger"/>
                     </div>
                 </div>
-                <div class="mud-input-control mud-input-required mud-input-input-control pb-2">
-                    <div class="mud-input-control-input-container">
-                        <div class="mud-input mud-input-text mud-input-underline">
-                            <InputText type="password" @bind-Value="Input.Password" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="new-password" aria-required="true" placeholder="Hasło"/>
-                            <ValidationMessage For="() => Input.Password" class="text-danger"/> 
-                        </div>
+            </div>
+            <div class="mud-input-control mud-input-required mud-input-input-control pb-2">
+                <div class="mud-input-control-input-container">
+                    <div class="mud-input mud-input-text mud-input-underline">
+                        <InputText type="password" @bind-Value="Input.Password" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="new-password" aria-required="true" placeholder="Hasło"/>
+                        <ValidationMessage For="() => Input.Password" class="text-danger"/> 
                     </div>
                 </div>
-                <div class="mud-input-control mud-input-required mud-input-input-control pb-2">
-                    <div class="mud-input-control-input-container">
-                        <div class="mud-input mud-input-text mud-input-underline">
-                            <InputText type="password" @bind-Value="Input.ConfirmPassword" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="new-password" aria-required="true" placeholder="Potwierdź hasło"/>
-                            <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger"/>
-                        </div>
+            </div>
+            <div class="mud-input-control mud-input-required mud-input-input-control pb-2">
+                <div class="mud-input-control-input-container">
+                    <div class="mud-input mud-input-text mud-input-underline">
+                        <InputText type="password" @bind-Value="Input.ConfirmPassword" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="new-password" aria-required="true" placeholder="Potwierdź hasło"/>
+                        <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger"/>
                     </div>
                 </div>
-                <div class="d-flex">
-                    <MudLink Href="Account/Login" Class="align-self-end">Masz już konto? Zaloguj się</MudLink>
-                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="mt-2 ml-auto">Zarejestruj</MudButton>
-                </div>
-            </EditForm>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+            </div>
+            <div class="d-flex">
+                <MudLink Href="Account/Login" Class="align-self-end">Masz już konto? Zaloguj się</MudLink>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="mt-2 ml-auto">Zarejestruj</MudButton>
+            </div>
+        </EditForm>
+    </MudPaper>
+</MudItem>
 
 @code {
     private IEnumerable<IdentityError>? identityErrors;
