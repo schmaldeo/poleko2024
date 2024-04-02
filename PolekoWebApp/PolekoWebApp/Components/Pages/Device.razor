@@ -1,13 +1,36 @@
 ﻿@page "/device/{id?}"
 @attribute [Authorize]
 
+@using PolekoWebApp.Data
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbContextFactory
+
 @* device ip *@
 <PageTitle>@(Id ?? "Devices")</PageTitle>
 <h3>Device</h3>
 
 @Id
+@if (Sensor is null)
+{
+    <span>Ładowanie...</span>
+}
+else
+{
+    <span>@Sensor.IpAddress</span>
+    <span>@Sensor.MacAddress</span>
+}
 
 @code {
     [Parameter]
     public string? Id { get; set; }
+    
+    public Sensor? Sensor { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        Sensor = await dbContext.Sensors.Where(x => x.SensorId.ToString() == Id).FirstAsync();
+        await base.OnInitializedAsync();
+    }
+
 }
