@@ -1,18 +1,17 @@
 ﻿@page "/Account/Manage"
 
-@using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
 @using PolekoWebApp.Data
 
 @inject UserManager<ApplicationUser> UserManager
-@inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityUserAccessor UserAccessor
-@inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Profile</PageTitle>
 
 <h3>Profile</h3>
-<h4>User: @username</h4>
+<h4>
+    User: @(username ?? "username")
+</h4>
 
 @code {
     private ApplicationUser user = default!;
