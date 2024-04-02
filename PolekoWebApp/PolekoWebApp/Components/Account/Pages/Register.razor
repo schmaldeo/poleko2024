@@ -14,6 +14,7 @@
 
 <PageTitle>Register</PageTitle>
 
+@* TODO fix overflow *@
 <MudGrid>
     <MudItem sm="5" Class="ma-auto">
         <MudPaper Class="pa-4">
@@ -47,7 +48,10 @@
                         </div>
                     </div>
                 </div>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Zarejestruj się</MudButton>
+                <div class="d-flex">
+                    <MudLink Href="Account/Login" Class="align-self-end">Masz już konto? Zaloguj się</MudLink>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="mt-2 ml-auto">Zarejestruj</MudButton>
+                </div>
             </EditForm>
         </MudPaper>
     </MudItem>
