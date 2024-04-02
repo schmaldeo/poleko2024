@@ -27,21 +27,28 @@
                     }
                 }
             </MudNavGroup>
-            <MudDivider />
-            <MudNavLink Href="Account/Manage" Class="justify-self-end">@context.User.Identity?.Name</MudNavLink>
-            <MudNavLink>
-                @* this needs to be like this because there's a logout endpoint*@
+            <MudNavLink>Add new device</MudNavLink>
+            @* border style to place the divider on the bottom just above the account settings *@
+            <MudDivider Style="border-style: none none solid none" />
+            <MudNavLink Href="Account/Manage">@context.User.Identity?.Name</MudNavLink>
+            <div class="mud-nav-item mud-ripple">
+            @* need to wrap this in divs because with NavLink it'd be highlighted all the time *@
+            <a class="mud-nav-link">
+                <div class="mud-nav-link-text">
                 <form action="Account/Logout" method="post">
                     <AntiforgeryToken/>
                     <input type="hidden" name="ReturnUrl" value="@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)"/>
                     @* position absolute to have the button clip over the Logout text, otherwise it stays centered no 
-                    matter what *@
+                        matter what *@
                     <button type="submit" style="height: 100%; width: 100%; position: absolute"></button>
                 </form>
                 Wyloguj się
-            </MudNavLink>
+                </div>
+            </a>
+            </div>
         </Authorized>
         <NotAuthorized>
+            <MudDivider Style="border-style: none none solid none" />
             <MudNavLink Href="Account/Login" Class="justify-self-end">Zaloguj się</MudNavLink>
             <MudNavLink Href="Account/Register">Zarejestruj się</MudNavLink>
         </NotAuthorized>
