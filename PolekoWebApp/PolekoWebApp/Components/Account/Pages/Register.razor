@@ -1,51 +1,57 @@
 ﻿@page "/Account/Register"
 
 @using System.ComponentModel.DataAnnotations
-@using System.Text
-@using System.Text.Encodings.Web
 @using Microsoft.AspNetCore.Identity
-@using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.EntityFrameworkCore
 @using PolekoWebApp.Data
+@using MudBlazor
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IUserStore<ApplicationUser> UserStore
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Register> Logger
-@inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Register</PageTitle>
 
-<h1>Register</h1>
-
-<div class="row">
-    <div class="col-md-4">
-        <StatusMessage Message="@Message"/>
-        <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
-            <DataAnnotationsValidator/>
-            <h2>Create a new account.</h2>
-            <hr/>
-            <ValidationSummary class="text-danger" role="alert"/>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com"/>
-                <label for="email">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger"/>
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password"/>
-                <label for="password">Password</label>
-                <ValidationMessage For="() => Input.Password" class="text-danger"/>
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password"/>
-                <label for="confirm-password">Confirm Password</label>
-                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger"/>
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </EditForm>
-    </div>
-</div>
+<MudGrid>
+    <MudItem sm="5" Class="ma-auto">
+        <MudPaper Class="pa-4">
+            <StatusMessage Message="@Message"/>
+            <EditForm Model="@Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
+                <DataAnnotationsValidator/>
+                <h2>Stwórz nowe konto</h2>
+                <hr/>
+                <ValidationSummary class="text-danger" role="alert"/>
+                <div class="mud-input-control mud-input-required mud-input-input-control pb-2">
+                    <div class="mud-input-control-input-container">
+                        <div class="mud-input mud-input-text mud-input-underline">
+                            <InputText @bind-Value="Input.Email" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="username" aria-required="true" placeholder="Email"/>
+                            <ValidationMessage For="() => Input.Email" class="text-danger"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="mud-input-control mud-input-required mud-input-input-control pb-2">
+                    <div class="mud-input-control-input-container">
+                        <div class="mud-input mud-input-text mud-input-underline">
+                            <InputText type="password" @bind-Value="Input.Password" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="new-password" aria-required="true" placeholder="Hasło"/>
+                            <ValidationMessage For="() => Input.Password" class="text-danger"/> 
+                        </div>
+                    </div>
+                </div>
+                <div class="mud-input-control mud-input-required mud-input-input-control pb-2">
+                    <div class="mud-input-control-input-container">
+                        <div class="mud-input mud-input-text mud-input-underline">
+                            <InputText type="password" @bind-Value="Input.ConfirmPassword" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="new-password" aria-required="true" placeholder="Potwierdź hasło"/>
+                            <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger"/>
+                        </div>
+                    </div>
+                </div>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Zarejestruj się</MudButton>
+            </EditForm>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
 
 @code {
     private IEnumerable<IdentityError>? identityErrors;
