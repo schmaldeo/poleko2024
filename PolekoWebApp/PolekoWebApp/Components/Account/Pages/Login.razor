@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using PolekoWebApp.Data
+@using MudBlazor
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
@@ -12,44 +13,43 @@
 
 <PageTitle>Log in</PageTitle>
 
-<h1>Log in</h1>
-<div class="row">
-    <div class="col-md-4">
-        <section>
+<MudGrid>
+    <MudItem sm="5" Class="ma-auto">
+        <MudPaper Class="pa-4">
             <StatusMessage Message="@errorMessage"/>
             <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator/>
-                <h2>Use a local account to log in.</h2>
+                <h2>Zaloguj się</h2>
                 <hr/>
                 <ValidationSummary class="text-danger" role="alert"/>
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com"/>
-                    <label for="email" class="form-label">Email</label>
-                    <ValidationMessage For="() => Input.Email" class="text-danger"/>
+                <div class="mud-input-control mud-input-required mud-input-input-control pb-2">
+                    <div class="mud-input-control-input-container">
+                        <div class="mud-input mud-input-text mud-input-underline">
+                            <InputText @bind-Value="Input.Email" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="username" aria-required="true" placeholder="Email"/>
+                            <ValidationMessage For="() => Input.Email" class="text-danger"/>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password"/>
-                    <label for="password" class="form-label">Password</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger"/>
+                <div class="mud-input-control mud-input-required mud-input-input-control pb-2">
+                    <div class="mud-input-control-input-container">
+                        <div class="mud-input mud-input-text mud-input-underline">
+                            <InputText type="password" @bind-Value="Input.Password" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="current-password" aria-required="true" placeholder="Hasło"/>
+                            <ValidationMessage For="() => Input.Password" class="text-danger"/>
+                        </div>
+                    </div>
                 </div>
-                <div class="checkbox mb-3">
-                    <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input"/>
-                        Remember me
+                <div class="d-flex mb-3 mt-2">
+                    <label class="align-self-center">
+                        <InputCheckbox @bind-Value="Input.RememberMe" />
+                      <span style="font-size: 1rem;">Zapamiętaj mnie</span>
                     </label>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Zaloguj</MudButton>
                 </div>
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <div>
-                    <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
-                    </p>
-                </div>
-            </EditForm>
-        </section>
-    </div>
-</div>
+                <MudLink Href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Zarejestruj się</MudLink>
+            </EditForm>            
+        </MudPaper>
+    </MudItem>
+</MudGrid>
 
 @code {
     private string? errorMessage;
