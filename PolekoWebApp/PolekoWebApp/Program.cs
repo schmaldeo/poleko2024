@@ -4,12 +4,15 @@ using Microsoft.EntityFrameworkCore;
 using PolekoWebApp.Components;
 using PolekoWebApp.Components.Account;
 using PolekoWebApp.Data;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents(options => options.DetailedErrors = builder.Environment.IsProduction())
     .AddInteractiveServerComponents();
+
+builder.Services.AddMudServices();
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
