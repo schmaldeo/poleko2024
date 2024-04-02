@@ -81,7 +81,7 @@
         // give the first registered user an admin role
         if (first)
         {
-            await UserManager.AddToRolesAsync(user, ["Admin", "User"]);
+            await UserManager.AddToRolesAsync(user, ["SuperAdmin", "Admin", "User"]);
             Logger.LogInformation("First account created. Admin role given.");
         }
         else

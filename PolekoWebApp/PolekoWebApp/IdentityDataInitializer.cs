@@ -3,7 +3,7 @@ using PolekoWebApp.Data;
 
 public static class IdentityDataInitializer
 {
-    private static readonly string[] Roles = ["Admin", "User"];
+    private static readonly string[] Roles = ["SuperAdmin", "Admin", "User"];
 
     public static async Task SeedRoles(RoleManager<IdentityRole> roleManager)
     {
