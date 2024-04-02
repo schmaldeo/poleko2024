@@ -1,17 +1,31 @@
 ﻿@rendermode InteractiveServer
 @using MudBlazor
+@using PolekoWebApp.Data
+@using Microsoft.EntityFrameworkCore
 
+@inject ApplicationDbContext DbContext
 @inject NavigationManager NavigationManager
 
 <MudNavMenu>
-    <MudNavLink Href="/" Match="NavLinkMatch.All">Dashboard</MudNavLink>
-    <MudNavLink Href="Device">Servers</MudNavLink>
-    @* <MudNavGroup Title="Settings" Expanded="true"> *@
-    @*     <MudNavLink Href="/users"  Match="NavLinkMatch.Prefix">Users</MudNavLink> *@
-    @*     <MudNavLink Href="/security"  Match="NavLinkMatch.Prefix">Security</MudNavLink> *@
-    @* </MudNavGroup> *@
+    <MudNavLink Href="/" Match="NavLinkMatch.All">Strona główna</MudNavLink>
+    @* TODO find out why spacer doesnt work *@
     <AuthorizeView>
         <Authorized>
+            <MudNavGroup Title="Devices" Expanded="true">
+                @if (Sensors is null)
+                {
+                    <span>Ładowanie czujników...</span>
+                }
+                else
+                {
+                    @foreach (var sensor in Sensors)
+                    {
+                        <MudNavLink Href="@($"Device/{sensor.SensorId}")">
+                            @(sensor.IpAddress ?? sensor.MacAddress ?? $"Czujnik {sensor.SensorId}")
+                        </MudNavLink>
+                    }
+                }
+            </MudNavGroup>
             <MudNavLink Href="Account/Manage">@context.User.Identity?.Name</MudNavLink>
             <MudNavLink>
                 @* this needs to be like this because there's a logout endpoint*@
@@ -31,3 +45,13 @@
         </NotAuthorized>
     </AuthorizeView>
 </MudNavMenu>
+
+@code {
+    private Sensor[]? Sensors { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Sensors = await DbContext.Sensors.ToArrayAsync();
+        await base.OnInitializedAsync();
+    }
+}
