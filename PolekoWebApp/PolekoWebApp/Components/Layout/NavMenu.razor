@@ -18,9 +18,9 @@
                 <form action="Account/Logout" method="post">
                     <AntiforgeryToken/>
                     <input type="hidden" name="ReturnUrl" value="@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)"/>
-                    @* position fixed to have the button clip over the Logout text, otherwise it stays centered no 
+                    @* position absolute to have the button clip over the Logout text, otherwise it stays centered no 
                     matter what *@
-                    <button type="submit" style="height: 100%; width: 100%; position: fixed"></button>
+                    <button type="submit" style="height: 100%; width: 100%; position: absolute"></button>
                 </form>
                 Wyloguj się
             </MudNavLink>
