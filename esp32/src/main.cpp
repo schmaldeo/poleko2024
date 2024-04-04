@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <vector>
+#include <utility>
 
 WiFiServer server(80);
 String header;
@@ -17,6 +19,8 @@ String receivedMessage;
 HardwareSerial SensorSerial(2);
 
 void initialWifiSetup();
+String readSensorData(HardwareSerial& serial);
+std::pair<float, float> processSensorData(String& sensorData);
 
 void setup() {
   // WiFi.mode(WIFI_AP);
@@ -26,18 +30,14 @@ void setup() {
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
   }
+  // TODO fix weird characters upon launch
   server.begin();
   Serial.begin(9600);
-  Serial.println("looool");
   SensorSerial.begin(19200, SERIAL_8N1, 16, 17);
   SensorSerial.println('\n');
-  Serial.println(SensorSerial.baudRate());
-    // Serial1.begin(19200, SERIAL_8N1);
-    // Serial1.println('\n');
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
 //   WiFiClient client = server.available();
 
 //   if (client) {
@@ -73,34 +73,59 @@ void loop() {
 //     client.stop();
 //   }
 
-    SensorSerial.println("{F99RDD}\r\n");
-    delay(2000); // Adjust delay based on probe response time
+    delay(2000);
 
-    unsigned long startTime = millis();
+
+    String message = readSensorData(SensorSerial);
+    std::pair<float, float> data = processSensorData(message);
+    Serial.print("Humidity: ");
+    Serial.print(data.first);
+    Serial.print("\n");
+    Serial.print("Temperature: ");
+    Serial.print(data.second);
+    Serial.print("\n\n");
+}
+
+String readSensorData(HardwareSerial& serial) {
+    serial.println("{F99RDD}\r\n");
+
     char receivedChar;
     String receivedMessage = "";
 
-    // while (SensorSerial.available() > 0 && (millis() - startTime) < 1000) { // Limit wait time
-    //     // receivedChar = (char)SensorSerial.read(); // Cast to char
-    //     // if (receivedChar == '\n') {
-    //     // Serial.println(receivedMessage);
-    //     // receivedMessage = ""; // Clear for next message
-    //     // } else {
-    //     // receivedMessage += receivedChar;
-    //     // }
-    //     int incomingByte = SensorSerial.read();
-    //     Serial.print("0x"); // Print in hexadecimal format
-    //     Serial.println(incomingByte, HEX);
-    // }
-
-    while (SensorSerial.available() > 0) {
-        char receivedChar = SensorSerial.read();
+    while (serial.available() > 0) {
+        char receivedChar = serial.read();
 
         if (receivedChar == 0xD) {
-            Serial.println(receivedMessage);  // Print the received message in the Serial monitor
-            receivedMessage = "";  // Reset the received message
+            return receivedMessage;
         } else {
-            receivedMessage += receivedChar;  // Append characters to the received message
+            receivedMessage += receivedChar;
         }
     }
+
+    return receivedMessage;
+}
+
+std::pair<float, float> processSensorData(String& sensorData) {
+    // length of the string is constant, doing a check to avoid processing empty strings that sometimes get passed
+    if (sensorData.length() != 94) {
+        return std::make_pair(0.0f, 0.0f);
+    }
+    char* data = new char[sensorData.length() + 1];
+    strcpy(data, sensorData.c_str());
+
+    char* split = strtok(data, ";");
+
+    split = strtok(NULL, ";");
+
+    float humidity = atof(split);
+
+    for (int i = 0; i < 4; i++) {
+        split = strtok(NULL, ";");
+    }
+
+    float temperature = atof(split);
+
+    delete[] data;
+
+    return std::make_pair(humidity, temperature);
 }
