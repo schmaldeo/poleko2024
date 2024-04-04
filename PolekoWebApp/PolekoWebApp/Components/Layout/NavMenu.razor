@@ -12,21 +12,24 @@
     @* TODO find out why spacer doesnt work *@
     <AuthorizeView>
         <Authorized>
-            <MudNavGroup Title="Devices" Expanded="true">
                 @if (Sensors is null)
                 {
                     <span>Ładowanie czujników...</span>
                 }
                 else
                 {
-                    @foreach (var sensor in Sensors)
+                    @if (Sensors.Length > 0)
                     {
-                        <MudNavLink Href="@($"Device/{sensor.SensorId}")">
-                            @(sensor.IpAddress ?? sensor.MacAddress ?? $"Czujnik {sensor.SensorId}")
-                        </MudNavLink>
+                        <MudNavGroup Title="Devices" Expanded="true">
+                            @foreach (var sensor in Sensors)
+                            {
+                                <MudNavLink Href="@($"Device/{sensor.SensorId}")">
+                                    @(sensor.IpAddress ?? sensor.MacAddress ?? $"Czujnik {sensor.SensorId}")
+                                </MudNavLink>
+                            }
+                        </MudNavGroup>
                     }
                 }
-            </MudNavGroup>
             <MudNavLink>Add new device</MudNavLink>
             @* border style to place the divider on the bottom just above the account settings *@
             <MudDivider Style="border-style: none none solid none" />
