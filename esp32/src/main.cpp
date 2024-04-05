@@ -24,10 +24,7 @@ void setupWifi(String ssid, String password, unsigned int timeout);
 void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
-    // Serial.begin(9600);
-    // SensorSerial.begin(19200, SERIAL_8N1, 16, 17);
     setupSerial(SensorSerial, 16, 17);
-    // Sensor sensor = Sensor(SensorSerial);
   // WiFi.mode(WIFI_AP);
   // WiFi.softAP("smallboard", "12345678");
 //   WiFi.config(localIP, gateway, subnet);

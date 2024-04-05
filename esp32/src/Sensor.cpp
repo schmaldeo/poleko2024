@@ -2,6 +2,8 @@
 #include <utility>
 #include <Sensor.h>
 
+/// @brief 
+/// @param hardwareSerial Serial interface of the interface. IMPORTANT: it must already be set up and initialised 
 Sensor::Sensor(HardwareSerial& hardwareSerial) : serial(hardwareSerial) { }
 
 /// @brief Gets data from the sensor
