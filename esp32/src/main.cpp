@@ -1,9 +1,10 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <Sensor.h>
 #include <vector>
 #include <utility>
 
-WiFiServer server(80);
+// WiFiServer server(80);
 String header;
 
 IPAddress localIP(192, 168, 11, 20);
@@ -17,24 +18,21 @@ const long timeoutTime = 2000;
 String receivedMessage;
 
 HardwareSerial SensorSerial(2);
+Sensor sensor(SensorSerial);
 
-void initialWifiSetup();
-String readSensorData(HardwareSerial& serial);
-std::pair<float, float> processSensorData(String& sensorData);
+void setupWifi(String ssid, String password, unsigned int timeout);
+void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
+    // Serial.begin(9600);
+    // SensorSerial.begin(19200, SERIAL_8N1, 16, 17);
+    setupSerial(SensorSerial, 16, 17);
+    // Sensor sensor = Sensor(SensorSerial);
   // WiFi.mode(WIFI_AP);
   // WiFi.softAP("smallboard", "12345678");
-  WiFi.config(localIP, gateway, subnet);
-  WiFi.begin("TP-Link_DF70", "74884728");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-  }
-  // TODO fix weird characters upon launch
-  server.begin();
-  Serial.begin(9600);
-  SensorSerial.begin(19200, SERIAL_8N1, 16, 17);
-  SensorSerial.println('\n');
+//   WiFi.config(localIP, gateway, subnet);
+//   server.begin();
+//   SensorSerial.println('\n');
 }
 
 void loop() {
@@ -73,11 +71,13 @@ void loop() {
 //     client.stop();
 //   }
 
+
     delay(2000);
 
 
-    String message = readSensorData(SensorSerial);
-    std::pair<float, float> data = processSensorData(message);
+    // String message = readSensorData(SensorSerial);
+    // std::pair<float, float> data = processSensorData(message);
+    std::pair<float, float> data = sensor.getSensorData();
     Serial.print("Humidity: ");
     Serial.print(data.first);
     Serial.print("\n");
@@ -86,46 +86,24 @@ void loop() {
     Serial.print("\n\n");
 }
 
-String readSensorData(HardwareSerial& serial) {
-    serial.println("{F99RDD}\r\n");
-
-    char receivedChar;
-    String receivedMessage = "";
-
-    while (serial.available() > 0) {
-        char receivedChar = serial.read();
-
-        if (receivedChar == 0xD) {
-            return receivedMessage;
-        } else {
-            receivedMessage += receivedChar;
-        }
+/// @brief Sets up WiFi connection
+/// @param ssid 
+/// @param password 
+/// @param timeout 
+void setupWifi(String ssid, String password, unsigned int timeout) {
+    WiFi.begin("TP-Link_DF70", "74884728");
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
     }
-
-    return receivedMessage;
 }
 
-std::pair<float, float> processSensorData(String& sensorData) {
-    // length of the string is constant, doing a check to avoid processing empty strings that sometimes get passed
-    if (sensorData.length() != 94) {
-        return std::make_pair(0.0f, 0.0f);
-    }
-    char* data = new char[sensorData.length() + 1];
-    strcpy(data, sensorData.c_str());
-
-    char* split = strtok(data, ";");
-
-    split = strtok(NULL, ";");
-
-    float humidity = atof(split);
-
-    for (int i = 0; i < 4; i++) {
-        split = strtok(NULL, ";");
-    }
-
-    float temperature = atof(split);
-
-    delete[] data;
-
-    return std::make_pair(humidity, temperature);
+/// @brief Sets up UART communication
+/// @param sensorSerial A reference to the HardwareSerial object related to the sensor
+/// @param rxPin RxD pin the sensor is plugged into
+/// @param txPin TxD pin the sensor is plugged into
+void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin) {
+    Serial.begin(9600);
+    sensorSerial.begin(19200, SERIAL_8N1, rxPin, txPin);
 }
+
+
