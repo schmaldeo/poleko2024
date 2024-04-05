@@ -1,6 +1,7 @@
 #include <Arduino.h>
-#include <WiFi.h>
-#include <Sensor.h>
+// #include <WiFi.h>
+#include "Sensor.h"
+#include "EspWIfi.h"
 #include <vector>
 #include <utility>
 
@@ -19,12 +20,14 @@ String receivedMessage;
 
 HardwareSerial SensorSerial(2);
 Sensor sensor(SensorSerial);
+EspWifi Wifi;
 
 void setupWifi(String ssid, String password, unsigned int timeout);
 void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
     setupSerial(SensorSerial, 16, 17);
+    Wifi.connectOrStartAP("GalaxyA21s2137", "xqje5958", "board");
   // WiFi.mode(WIFI_AP);
   // WiFi.softAP("smallboard", "12345678");
 //   WiFi.config(localIP, gateway, subnet);
@@ -87,12 +90,12 @@ void loop() {
 /// @param ssid 
 /// @param password 
 /// @param timeout 
-void setupWifi(String ssid, String password, unsigned int timeout) {
-    WiFi.begin("TP-Link_DF70", "74884728");
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-    }
-}
+// void setupWifi(String ssid, String password, unsigned int timeout) {
+//     WiFi.begin("TP-Link_DF70", "74884728");
+//     while (WiFi.status() != WL_CONNECTED) {
+//         delay(1000);
+//     }
+// }
 
 /// @brief Sets up UART communication
 /// @param sensorSerial A reference to the HardwareSerial object related to the sensor
