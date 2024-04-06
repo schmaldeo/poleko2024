@@ -1,20 +1,25 @@
 #include <Arduino.h>
-// #include <WiFi.h>
+#include <AsyncTCP.h>
+#include <WiFi.h>
 #include "Sensor.h"
-#include "EspWIfi.h"
+// #include "EspWifi.h"
+#include "EspTcp.h"
 #include <vector>
 #include <utility>
 
 HardwareSerial SensorSerial(2);
 Sensor sensor(SensorSerial);
-EspWifi Wifi;
+// EspWifi Wifi;
 
 void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
     setupSerial(SensorSerial, 16, 17);
-    // Wifi.connectOrStartAP("GalaxyA21s2137", "xqje5958", "board");
-//   WiFi.config(localIP, gateway, subnet);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin("GalaxyA21s2137", "xqje5958");
+    WiFi.config(IPAddress(192, 168, 184, 20), IPAddress(192, 168, 184, 205), IPAddress(255, 255, 255, 0));
+    EspTcp tcpServer(5505);
+    tcpServer.setup();
 }
 
 void loop() {
@@ -54,16 +59,16 @@ void loop() {
 //   }
 
 
-    delay(2000);
+    // delay(2000);
 
 
-    std::pair<float, float> data = sensor.getSensorData();
-    Serial.print("Humidity: ");
-    Serial.print(data.first);
-    Serial.print("\n");
-    Serial.print("Temperature: ");
-    Serial.print(data.second);
-    Serial.print("\n\n");
+    // std::pair<float, float> data = sensor.getSensorData();
+    // Serial.print("Humidity: ");
+    // Serial.print(data.first);
+    // Serial.print("\n");
+    // Serial.print("Temperature: ");
+    // Serial.print(data.second);
+    // Serial.print("\n\n");
 }
 
 
