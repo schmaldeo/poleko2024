@@ -13,7 +13,7 @@ void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
     setupSerial(SensorSerial, 16, 17);
-    Wifi.connectOrStartAP("GalaxyA21s2137", "xqje5958", "board");
+    // Wifi.connectOrStartAP("GalaxyA21s2137", "xqje5958", "board");
 //   WiFi.config(localIP, gateway, subnet);
 }
 
