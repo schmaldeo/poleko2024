@@ -3,7 +3,7 @@
 #include <WiFi.h>
 #include "Sensor.h"
 // #include "EspWifi.h"
-#include "EspTcp.h"
+#include "TCP.h"
 #include <vector>
 #include <utility>
 
@@ -14,12 +14,15 @@ Sensor sensor(SensorSerial);
 void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
-    setupSerial(SensorSerial, 16, 17);
     WiFi.mode(WIFI_STA);
     WiFi.begin("GalaxyA21s2137", "xqje5958");
-    WiFi.config(IPAddress(192, 168, 184, 20), IPAddress(192, 168, 184, 205), IPAddress(255, 255, 255, 0));
-    EspTcp tcpServer(5505);
-    tcpServer.setup();
+    WiFi.config(IPAddress(192, 168, 184, 22), IPAddress(192, 168, 184, 205), IPAddress(255, 255, 255, 0));
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+    }
+    setupSerial(SensorSerial, 16, 17);
+    TCP tcpServer(5505);
+    tcpServer.setup(sensor);
 }
 
 void loop() {
@@ -80,6 +83,5 @@ void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin) {
     // TODO move to Sensor, Serial0 initialisation should be optional
     Serial.begin(9600);
     sensorSerial.begin(19200, SERIAL_8N1, rxPin, txPin);
+    sensorSerial.print("{F99RDD\r\n}");
 }
-
-
