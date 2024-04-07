@@ -12,17 +12,18 @@ Sensor sensor(SensorSerial);
 TCP tcpServer(5505);
 // EspWifi Wifi;
 
+// TODO change partition table for filesystem shenanigans
+
 void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
     WiFi.mode(WIFI_STA);
-    WiFi.begin("TP-Link_DF70", "74884728");
     WiFi.config(IPAddress(192, 168, 11, 20), IPAddress(192, 168, 11, 1), IPAddress(255, 255, 255, 0));
+    WiFi.begin("TP-Link_DF70", "74884728");
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
     }
     setupSerial(SensorSerial, 16, 17);
-    // TCP tcpServer(5505);
     tcpServer.setup(sensor);
 }
 
@@ -63,7 +64,7 @@ void loop() {
 //   }
 
 
-    delay(2000);
+    // delay(2000);
 
 
     // std::pair<float, float> data = sensor.getSensorData();
