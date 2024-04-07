@@ -9,6 +9,8 @@ class TCP {
     public:
     TCP(unsigned short port);
     ~TCP();
+    TCP(const TCP&) = delete;
+    TCP& operator=(const TCP&) = delete;
     void setup(Sensor& sensor);
     static void loop();
     private:
