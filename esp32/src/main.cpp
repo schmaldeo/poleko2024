@@ -1,18 +1,32 @@
 #include <Arduino.h>
 #include "Sensor.h"
-#include "WiFiManager.h"
-#include <vector>
-#include <utility>
+#include <WiFiManager.h>
+
 
 HardwareSerial SensorSerial(2);
 Sensor sensor(SensorSerial);
-WiFiManager Wifi;
 
 void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
     setupSerial(SensorSerial, 16, 17);
-    Wifi.connectOrStartAP("GalaxyA21s2137", "xqje5958", "board");
+    WiFiManager wm;
+
+    wm.resetSettings();
+
+    bool res;
+    // res = wm.autoConnect(); // auto generated AP name from chipid
+    // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
+    res = wm.autoConnect("AutoConnectAP"); // password protected ap
+
+    if(!res) {
+        Serial.println("Failed to connect");
+        // ESP.restart();
+    } 
+    else {
+        //if you get here you have connected to the WiFi    
+        Serial.println("connected...yeey :)");
+    }
 //   WiFi.config(localIP, gateway, subnet);
 }
 
