@@ -31,7 +31,7 @@ void TCP::handleClient(void *arg, AsyncClient *client) {
     globalSensor = sensor;
 
     ESP32Timer timer(0);
-    timer.attachInterrupt(0.5, handel);
+    timer.attachInterrupt(0.5, timerHandle);
 
     client->onData(&handleData, nullptr);
     client->onError(&handleError, nullptr);
@@ -42,12 +42,12 @@ void TCP::handleClient(void *arg, AsyncClient *client) {
 void TCP::loop() {
     if (timerFlag) {
         timerFlag = false;
-        timerHandle(nullptr);
+        sendDataToClient();
     }
 }
 
 
-bool TCP::timerHandle(void* lol) {
+bool TCP::sendDataToClient() {
     if (globalClient->connected()) {
         std::pair<float, float> data = globalSensor->getSensorData();
         std::stringstream fmt;
@@ -59,7 +59,7 @@ bool TCP::timerHandle(void* lol) {
     return true;
 }
 
-bool TCP::handel(void* lol) {
+bool TCP::timerHandle(void *_) {
     timerFlag = true;
     return true;
 }

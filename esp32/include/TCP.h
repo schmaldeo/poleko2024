@@ -15,8 +15,8 @@ class TCP {
     static void loop();
     private:
     AsyncServer* server;
-    static bool handel(void* lol);
-    static bool timerHandle(void *lol);
+    static bool timerHandle(void *_);
+    static bool sendDataToClient();
     static void handleClient(void *arg, AsyncClient *client);
     static void handleData(void *arg, AsyncClient *client, void *data, size_t len);
     static void handleError(void *arg, AsyncClient *client, int8_t error);
