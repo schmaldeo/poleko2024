@@ -7,7 +7,9 @@
 
 class TCP {
     public:
-    void setup(unsigned short port, Sensor& sensor);
+    TCP(unsigned short port);
+    ~TCP();
+    void setup(Sensor& sensor);
     static void loop();
     private:
     AsyncServer* server;

@@ -10,9 +10,13 @@ AsyncClient *globalClient = nullptr;
 Sensor *globalSensor = nullptr;
 volatile bool timerFlag = false;
 
-void TCP::setup(unsigned short port, Sensor& sensor) {
-    // TODO free
-    auto server = new AsyncServer(port);
+TCP::TCP(unsigned short port) : server(new AsyncServer(port)) { }
+
+TCP::~TCP() {
+    delete server;
+}
+
+void TCP::setup(Sensor& sensor) {
     server->onClient(&handleClient, static_cast<void*>(&sensor));
     server->begin();
     Serial.println("TCP set up");
@@ -26,13 +30,9 @@ void TCP::handleClient(void *arg, AsyncClient *client) {
     globalClient = client;
     globalSensor = sensor;
 
-    // clientConnectedHandler(client, sensor);
     ESP32Timer timer(0);
     timer.attachInterrupt(0.5, handel);
 
-    // auto timer = timerBegin(0, 200, true);
-    // timerAttachInterrupt(timer, timerHandle, false);
-    // timerStart(timer);
     client->onData(&handleData, nullptr);
     client->onError(&handleError, nullptr);
     client->onDisconnect(&handleDisconnect, nullptr);
@@ -59,21 +59,10 @@ bool TCP::timerHandle(void* lol) {
     return true;
 }
 
-bool handel(void* lol) {
+bool TCP::handel(void* lol) {
     timerFlag = true;
     return true;
 }
-
-// void TCP::clientConnectedHandler(AsyncClient *client, Sensor *sensor) {
-//     if (client->connected()) {
-//         std::pair<float, float> data = sensor->getSensorData();
-//         std::stringstream fmt;
-//         fmt << data.first << "," << data.second;
-//         String stringified = fmt.str().c_str();
-//         client->add(stringified.c_str(), strlen(stringified.c_str()));
-//         client->send();
-//     }
-// }
 
 void TCP::handleData(void *arg, AsyncClient *client, void *data, size_t len) {
     Serial.println("data");
