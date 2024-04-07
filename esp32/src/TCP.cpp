@@ -6,6 +6,8 @@
 
 // TODO client adds the interval on connection
 
+// TODO figure out how to deal with the timer callback in case more connections are handled
+
 AsyncClient *globalClient = nullptr;
 Sensor *globalSensor = nullptr;
 volatile bool timerFlag = false;
