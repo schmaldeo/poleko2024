@@ -1,13 +1,12 @@
 #include <Arduino.h>
-// #include <WiFi.h>
 #include "Sensor.h"
-#include "EspWIfi.h"
+#include "WiFiManager.h"
 #include <vector>
 #include <utility>
 
 HardwareSerial SensorSerial(2);
 Sensor sensor(SensorSerial);
-EspWifi Wifi;
+WiFiManager Wifi;
 
 void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
