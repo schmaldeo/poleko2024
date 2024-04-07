@@ -52,8 +52,8 @@ bool TCP::timerHandle(void* lol) {
         std::pair<float, float> data = globalSensor->getSensorData();
         std::stringstream fmt;
         fmt << data.first << "," << data.second;
-        String stringified = fmt.str().c_str();
-        globalClient->add(stringified.c_str(), strlen(stringified.c_str()));
+        auto str = fmt.str();
+        globalClient->add(str.c_str(), strlen(str.c_str()));
         globalClient->send();
     }
     return true;
