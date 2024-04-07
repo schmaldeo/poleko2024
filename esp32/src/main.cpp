@@ -9,19 +9,20 @@
 
 HardwareSerial SensorSerial(2);
 Sensor sensor(SensorSerial);
+TCP tcpServer(5505);
 // EspWifi Wifi;
 
 void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
     WiFi.mode(WIFI_STA);
-    WiFi.begin("GalaxyA21s2137", "xqje5958");
-    WiFi.config(IPAddress(192, 168, 184, 22), IPAddress(192, 168, 184, 205), IPAddress(255, 255, 255, 0));
+    WiFi.begin("TP-Link_DF70", "74884728");
+    WiFi.config(IPAddress(192, 168, 11, 20), IPAddress(192, 168, 11, 1), IPAddress(255, 255, 255, 0));
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
     }
     setupSerial(SensorSerial, 16, 17);
-    TCP tcpServer(5505);
+    // TCP tcpServer(5505);
     tcpServer.setup(sensor);
 }
 
@@ -62,7 +63,7 @@ void loop() {
 //   }
 
 
-    // delay(2000);
+    delay(2000);
 
 
     // std::pair<float, float> data = sensor.getSensorData();
@@ -72,6 +73,7 @@ void loop() {
     // Serial.print("Temperature: ");
     // Serial.print(data.second);
     // Serial.print("\n\n");
+    tcpServer.loop();
 }
 
 

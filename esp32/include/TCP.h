@@ -1,17 +1,18 @@
 #include <HardwareSerial.h>
 #include <AsyncTCP.h>
 #include <Sensor.h>
-#include <Ticker.h>
+#include <ESP32TimerInterrupt.hpp>
 
 #pragma once
 
 class TCP {
     public:
-    TCP(unsigned short port);
-    void setup(Sensor& sensor);
+    void setup(unsigned short port, Sensor& sensor);
+    static void loop();
     private:
     AsyncServer* server;
-    static void clientConnectedHandler(AsyncClient *client, Sensor *sensor);
+    static bool handel(void* lol);
+    static bool timerHandle(void *lol);
     static void handleClient(void *arg, AsyncClient *client);
     static void handleData(void *arg, AsyncClient *client, void *data, size_t len);
     static void handleError(void *arg, AsyncClient *client, int8_t error);
