@@ -1,10 +1,10 @@
 #include <Arduino.h>
-#include <EspWifi.h>
+#include <WiFiManager.h>
 #include <Wifi.h>
 
-EspWifi::EspWifi() { }
+WiFiManager::WiFiManager() { }
 
-void EspWifi::connectOrStartAP(String stationSsid, String stationPassword, String apSsid, String apPassword, unsigned short timeout) {
+void WiFiManager::connectOrStartAP(String stationSsid, String stationPassword, String apSsid, String apPassword, unsigned short timeout) {
     if (stationSsid != emptyString) {
         WiFi.mode(WIFI_STA);
         WiFi.begin(stationSsid, stationPassword);
@@ -21,7 +21,7 @@ void EspWifi::connectOrStartAP(String stationSsid, String stationPassword, Strin
     }
 }
 
-void EspWifi::setupAP(String ssid, String password) {
+void WiFiManager::setupAP(String ssid, String password) {
     WiFi.mode(WIFI_AP);
     WiFi.softAP(ssid, password);
     // TODO setup webserver

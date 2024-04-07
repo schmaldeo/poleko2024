@@ -1,16 +1,13 @@
 #include <Arduino.h>
-#include <AsyncTCP.h>
-#include <WiFi.h>
 #include "Sensor.h"
-// #include "EspWifi.h"
-#include "TCP.h"
+#include "WiFiManager.h"
 #include <vector>
 #include <utility>
 
 HardwareSerial SensorSerial(2);
 Sensor sensor(SensorSerial);
 TCP tcpServer(5505);
-// EspWifi Wifi;
+// WiFiManager Wifi;
 
 // TODO change partition table for filesystem shenanigans
 
