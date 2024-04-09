@@ -8,6 +8,7 @@ class Sensor {
 public:
     Sensor(HardwareSerial& hardwareSerial);
     std::pair<float, float> getSensorData();
+    String getJsonString();
 private:
     HardwareSerial& serial;
     String readSensorData();

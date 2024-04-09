@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <utility>
 #include <Sensor.h>
+#include <ArduinoJson.h>
 
 /// @brief 
 /// @param hardwareSerial Serial interface of the interface. IMPORTANT: it must already be set up and initialised 
@@ -13,6 +14,15 @@ std::pair<float, float> Sensor::getSensorData() {
     return processSensorData(rawSensorResponse);
 }
 
+String Sensor::getJsonString() {
+    auto data = getSensorData();
+    JsonDocument doc;
+    doc["humidity"] = data.first;
+    doc["temperature"] = data.second;
+    String stringified;
+    serializeJson(doc, stringified);
+    return stringified;
+}
 
 /// @brief Reads data from the sensor
 /// @return Unprocessed String returned by the sensor

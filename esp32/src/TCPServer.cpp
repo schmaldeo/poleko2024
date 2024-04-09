@@ -9,6 +9,8 @@
 
 // TODO figure out how to deal with the timer callback in case more connections are handled
 
+// TODO try lambdas or std::bind here in place of those timer handlers
+
 AsyncClient *globalClient = nullptr;
 Sensor *globalSensor = nullptr;
 volatile bool timerFlag = false;
@@ -52,13 +54,8 @@ void TCPServer::loop() {
 
 bool TCPServer::sendDataToClient() {
     if (globalClient->connected()) {
-        std::pair<float, float> data = globalSensor->getSensorData();
-        JsonDocument doc;
-        doc["humidity"] = data.first;
-        doc["temperature"] = data.second;
-        String json;
-        serializeJson(doc, json);
-        globalClient->add(json.c_str(), strlen(json.c_str()));
+        auto str = globalSensor->getJsonString();
+        globalClient->add(str.c_str(), strlen(str.c_str()));
         globalClient->send();
     }
     return true;
