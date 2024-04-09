@@ -23,9 +23,8 @@ bool prevButtonState = HIGH;
 void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
-    setupWiFi();
-    setupWiFi();
     setupSerial(SensorSerial, 16, 17);
+    setupWiFi();
 }
 
 void loop() {
@@ -39,10 +38,8 @@ void loop() {
         digitalWrite(LED_PIN, LOW);
         setupIpSetup();
     }
-
     if (WiFi.status() == WL_CONNECTION_LOST) {
         // TODO start blinking
-
     }
     tcpServer.loop();
 }
