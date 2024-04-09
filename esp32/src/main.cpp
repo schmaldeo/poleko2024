@@ -24,6 +24,7 @@ void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
     setupWiFi();
+    setupWiFi();
     setupSerial(SensorSerial, 16, 17);
 }
 
