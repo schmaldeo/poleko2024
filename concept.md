@@ -1,8 +1,8 @@
 ﻿# Concept
 
 ## Sensor
-* Connect to Wifi and get DHCP address, **IF** wifi not found, start an AP, make it possible to configure network and set DHCP, **tbd**
-* Every once upon a time send measurements, make it possible to change the interval, **TCP connection** 
+<!-- * Connect to Wifi and get DHCP address, **IF** wifi not found, start an AP, make it possible to configure network and set DHCP, **tbd** -->
+<!-- * Every once upon a time send measurements, make it possible to change the interval, **TCP connection**  -->
 * Expose HTTP endpoint, [Return JSON](https://crowcpp.org/master/guides/json/) **Crow** 
 
 ## Web App
