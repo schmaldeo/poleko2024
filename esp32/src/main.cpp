@@ -1,9 +1,10 @@
 #include <Arduino.h>
 #include "Sensor.h"
+#include "WiFiHelpers.h"
+#include "TCP.h"
 #include <WiFiManager.h>
 #include <WiFi.h>
 #include <Preferences.h>
-#include "WiFiHelpers.h"
 
 // TODO add sensors by mac
 // TODO network discovery
@@ -15,31 +16,15 @@ constexpr byte BOOT_BUTTON_PIN = 0;
 HardwareSerial SensorSerial(2);
 Sensor sensor(SensorSerial);
 TCP tcpServer(5505);
-// WiFiManager Wifi;
-
-// TODO change partition table for filesystem shenanigans
 Preferences preferences;
 
 bool prevButtonState = HIGH;
-
 
 void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
     setupWiFi();
     setupSerial(SensorSerial, 16, 17);
-    WiFiManager wf;
-    // wf.resetSettings();
-    wf.setConnectTimeout(15);
-    bool connected = wf.autoConnect();
-    Serial.println(connected);
-    initialWiFiSetupOver = true;
-    if (WiFi.status() == WL_CONNECTED) {
-        // LED indicating whether wifi is connected
-        digitalWrite(LED_PIN, HIGH);
-    } else {
-        wf.reboot();
-    }
 }
 
 void loop() {
@@ -49,7 +34,7 @@ void loop() {
     }
     prevButtonState = buttonState;
     // TODO test if this works properly connection lost
-    if (initialWiFiSetupOver == true && WiFi.status() != WL_CONNECTED) {
+    if (WiFi.status() != WL_CONNECTED) {
         digitalWrite(LED_PIN, LOW);
         setupIpSetup();
     }
@@ -58,16 +43,6 @@ void loop() {
         // TODO start blinking
 
     }
-    // delay(2000);
-
-
-    // std::pair<float, float> data = sensor.getSensorData();
-    // Serial.print("Humidity: ");
-    // Serial.print(data.first);
-    // Serial.print("\n");
-    // Serial.print("Temperature: ");
-    // Serial.print(data.second);
-    // Serial.print("\n\n");
     tcpServer.loop();
 }
 

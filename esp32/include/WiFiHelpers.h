@@ -21,8 +21,6 @@ public:
     bool isValid();
 };
 
-bool initialWiFiSetupOver;
-
 void setupWiFi();
 void setupIpSetup();
 IpSettings getSavedIpSettings(Preferences& preferences);

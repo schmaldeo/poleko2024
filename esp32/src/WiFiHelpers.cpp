@@ -4,21 +4,22 @@
 #include <WiFi.h>
 #include <Preferences.h>
 
+bool initialWiFiSetupOver = false;
+
 void setupWiFi() {
     Preferences preferences;
     auto ipSettings = getSavedIpSettings(preferences);
     WiFi.config(ipSettings.ip, ipSettings.defaultGateway, ipSettings.subnetMask);
     pinMode(LED_PIN, OUTPUT);
-    WiFiManager wf;
-    // wf.resetSettings();
-    wf.setConnectTimeout(15);
-    bool connected = wf.autoConnect();
-    initialWiFiSetupOver = true;
+    WiFiManager wm;
+    wm.resetSettings();
+    wm.setConnectTimeout(15);
+    bool connected = wm.autoConnect();
     if (WiFi.status() == WL_CONNECTED) {
         // LED indicating whether wifi is connected
         digitalWrite(LED_PIN, HIGH);
     } else {
-        wf.reboot();
+        wm.reboot();
     }
 }
 
