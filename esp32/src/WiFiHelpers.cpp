@@ -22,6 +22,7 @@ void setupWiFi() {
     }
 }
 
+// TODO do more testing on static ip
 void setupIpSetup() {
     Preferences preferences;
     auto prefSettings = getSavedIpSettings(preferences);

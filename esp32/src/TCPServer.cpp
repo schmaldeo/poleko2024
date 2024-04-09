@@ -1,6 +1,7 @@
 #include "TCPServer.h"
 #include <sstream>
 #include <ESP32TimerInterrupt.h>
+#include <ArduinoJson.h>
 
 // TODO field thats an vector for timers, on disconnect or timeout remove the timer, request interval change either through tcp or http
 
@@ -52,10 +53,12 @@ void TCPServer::loop() {
 bool TCPServer::sendDataToClient() {
     if (globalClient->connected()) {
         std::pair<float, float> data = globalSensor->getSensorData();
-        std::stringstream fmt;
-        fmt << data.first << "," << data.second;
-        auto str = fmt.str();
-        globalClient->add(str.c_str(), strlen(str.c_str()));
+        JsonDocument doc;
+        doc["humidity"] = data.first;
+        doc["temperature"] = data.second;
+        String json;
+        serializeJson(doc, json);
+        globalClient->add(json.c_str(), strlen(json.c_str()));
         globalClient->send();
     }
     return true;

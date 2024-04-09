@@ -23,7 +23,7 @@ void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
     setupSerial(SensorSerial, 16, 17);
-    // this function blocks because config portal blocks
+    // this blocks because config portal blocks
     setupWiFi();
     tcpServer.setup(sensor);
 }
