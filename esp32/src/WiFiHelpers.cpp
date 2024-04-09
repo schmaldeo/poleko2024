@@ -12,7 +12,6 @@ void setupWiFi() {
     WiFi.config(ipSettings.ip, ipSettings.defaultGateway, ipSettings.subnetMask);
     pinMode(LED_PIN, OUTPUT);
     WiFiManager wm;
-    wm.resetSettings();
     wm.setConnectTimeout(15);
     bool connected = wm.autoConnect();
     if (WiFi.status() == WL_CONNECTED) {
