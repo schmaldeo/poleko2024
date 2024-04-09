@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "Sensor.h"
 #include "WiFiHelpers.h"
-#include "TCP.h"
+#include "TCPServer.h"
 #include <WiFiManager.h>
 #include <WiFi.h>
 #include <Preferences.h>
@@ -15,8 +15,7 @@ constexpr byte BOOT_BUTTON_PIN = 0;
 
 HardwareSerial SensorSerial(2);
 Sensor sensor(SensorSerial);
-TCP tcpServer(5505);
-Preferences preferences;
+TCPServer tcpServer(5505);
 
 bool prevButtonState = HIGH;
 

@@ -1,4 +1,4 @@
-#include "TCP.h"
+#include "TCPServer.h"
 #include <sstream>
 #include <ESP32TimerInterrupt.h>
 
@@ -12,19 +12,19 @@ AsyncClient *globalClient = nullptr;
 Sensor *globalSensor = nullptr;
 volatile bool timerFlag = false;
 
-TCP::TCP(unsigned short port) : server(new AsyncServer(port)) { }
+TCPServer::TCPServer(unsigned short port) : server(new AsyncServer(port)) { }
 
-TCP::~TCP() {
+TCPServer::~TCPServer() {
     delete server;
 }
 
-void TCP::setup(Sensor& sensor) {
+void TCPServer::setup(Sensor& sensor) {
     server->onClient(&handleClient, static_cast<void*>(&sensor));
     server->begin();
     Serial.println("TCP set up");
 }
 
-void TCP::handleClient(void *arg, AsyncClient *client) {
+void TCPServer::handleClient(void *arg, AsyncClient *client) {
     Sensor* sensor = static_cast<Sensor*>(arg);
     Serial.print("new client has been connected to server, ip:");
     Serial.println(client->remoteIP().toString().c_str());
@@ -41,7 +41,7 @@ void TCP::handleClient(void *arg, AsyncClient *client) {
     client->onTimeout(&handleTimeout, nullptr);
 }
 
-void TCP::loop() {
+void TCPServer::loop() {
     if (timerFlag) {
         timerFlag = false;
         sendDataToClient();
@@ -49,7 +49,7 @@ void TCP::loop() {
 }
 
 
-bool TCP::sendDataToClient() {
+bool TCPServer::sendDataToClient() {
     if (globalClient->connected()) {
         std::pair<float, float> data = globalSensor->getSensorData();
         std::stringstream fmt;
@@ -61,23 +61,23 @@ bool TCP::sendDataToClient() {
     return true;
 }
 
-bool TCP::timerHandle(void *_) {
+bool TCPServer::timerHandle(void *_) {
     timerFlag = true;
     return true;
 }
 
-void TCP::handleData(void *arg, AsyncClient *client, void *data, size_t len) {
+void TCPServer::handleData(void *arg, AsyncClient *client, void *data, size_t len) {
     Serial.println("data");
 }
 
-void TCP::handleError(void *arg, AsyncClient *client, int8_t error) {
+void TCPServer::handleError(void *arg, AsyncClient *client, int8_t error) {
     Serial.println("error");
 }
 
-void TCP::handleDisconnect(void *arg, AsyncClient *client) {
+void TCPServer::handleDisconnect(void *arg, AsyncClient *client) {
     Serial.println("disconnect");
 }
 
-void TCP::handleTimeout(void *arg, AsyncClient *client, uint32_t time) {
+void TCPServer::handleTimeout(void *arg, AsyncClient *client, uint32_t time) {
     Serial.println("timeout");
 }

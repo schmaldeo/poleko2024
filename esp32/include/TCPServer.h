@@ -5,12 +5,12 @@
 
 #pragma once
 
-class TCP {
+class TCPServer {
     public:
-    TCP(unsigned short port);
-    ~TCP();
-    TCP(const TCP&) = delete;
-    TCP& operator=(const TCP&) = delete;
+    TCPServer(unsigned short port);
+    ~TCPServer();
+    TCPServer(const TCPServer&) = delete;
+    TCPServer& operator=(const TCPServer&) = delete;
     void setup(Sensor& sensor);
     static void loop();
     private:
