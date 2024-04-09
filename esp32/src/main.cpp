@@ -24,7 +24,9 @@ void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
 
 void setup() {
     setupSerial(SensorSerial, 16, 17);
+    // this function blocks because config portal blocks
     setupWiFi();
+    tcpServer.setup(sensor);
 }
 
 void loop() {
@@ -37,9 +39,6 @@ void loop() {
     if (WiFi.status() != WL_CONNECTED) {
         digitalWrite(LED_PIN, LOW);
         setupIpSetup();
-    }
-    if (WiFi.status() == WL_CONNECTION_LOST) {
-        // TODO start blinking
     }
     tcpServer.loop();
 }
