@@ -3,14 +3,29 @@
 HTTPServer::HTTPServer(Sensor& sensor): server(WiFiServer(80)), sensor(sensor) { }
 
 void HTTPServer::setup() {
+    if (started) {
+        return;
+    }
     server.begin();
+    started = true;
+    stopped = false;
+    log_e("HTTP set up");
 }
 
 void HTTPServer::stop() {
+    if (stopped) {
+        return;
+    }
     server.stop();
+    stopped = true;
+    started = false;
+    log_e("HTTP stopped");
 }
 
 void HTTPServer::loop() {
+    if (stopped) {
+        return;
+    }
     auto client = server.accept();
 
     if (client) {

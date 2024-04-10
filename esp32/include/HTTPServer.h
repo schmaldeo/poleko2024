@@ -9,6 +9,8 @@ class HTTPServer {
     void loop();
 
     private:
+    bool started;
+    bool stopped;
     WiFiServer server;
     Sensor& sensor;
 };

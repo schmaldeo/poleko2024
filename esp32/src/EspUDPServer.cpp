@@ -31,6 +31,7 @@ void EspUDPServer::stop() {
     udp.stop();
     timer.detachInterrupt();
     stopped = true;
+    started = false;
     log_e("UDP stopped");
 }
 
