@@ -1,6 +1,5 @@
 #include "EspUDPServer.h"
 
-
 EspUDPServer* EspUDPServer::instance = nullptr;
 
 EspUDPServer::EspUDPServer() : udp(WiFiUDP()), timer(ESP32Timer(0)) {
@@ -8,7 +7,10 @@ EspUDPServer::EspUDPServer() : udp(WiFiUDP()), timer(ESP32Timer(0)) {
 }
 
 void EspUDPServer::setup(unsigned short port) {
-    if (!stoppedOnce) {
+    if (started) {
+        return;
+    }
+    if (!stopped) {
         udp.begin(WiFi.localIP(), port);
         timer.attachInterrupt(0.2, timerHandle);
         log_e("UDP set up");
@@ -17,20 +19,27 @@ void EspUDPServer::setup(unsigned short port) {
         udp.begin(WiFi.localIP(), port);
         timer.reattachInterrupt();
         log_e("UDP set up");
+        stopped = false;
     }
+    started = true;
 }
 
 void EspUDPServer::stop() {
+    if (stopped) {
+        return;
+    }
     udp.stop();
     timer.detachInterrupt();
-    stoppedOnce = true;
+    stopped = true;
     log_e("UDP stopped");
 }
 
 void EspUDPServer::loop() {
-    if (timerFlag) {
-        timerFlag = false;
-        sendPacket();
+    if (!instance->stopped) {
+        if (timerFlag) {
+            timerFlag = false;
+            sendPacket();
+        }
     }
 }
 

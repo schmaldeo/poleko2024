@@ -3,6 +3,7 @@
 #include <ArduinoJson.h>
 #include "Sensor.h"
 #include <ESP32TimerInterrupt.hpp>
+#include <memory>
 
 #pragma once
 
@@ -17,7 +18,8 @@ class EspUDPServer {
     
     private:
     volatile bool timerFlag;
-    bool stoppedOnce;
+    bool started;
+    bool stopped;
     ESP32Timer timer;
     WiFiUDP udp;
     // need to do this because no callback signature in timer library accepts parameters
