@@ -2,20 +2,22 @@
 #include "Sensor.h"
 #include "WiFiHelpers.h"
 #include "TCPServer.h"
-#include "HTTPServer.h"
 #include "EspUDPServer.h"
+#include "HTTPServer.h"
+#include "NewHTTPServer.h"
 #include <WiFiManager.h>
 #include <WiFi.h>
 #include <Preferences.h>
 
+// TODO change raw pointers to smart pointers
 // TODO find out why the first sensor reading is empty
 
 constexpr byte BOOT_BUTTON_PIN = 0;
 
 Sensor sensor(2, 16, 17);
 TCPServer tcpServer(sensor);
-HTTPServer httpServer(sensor);
 EspUDPServer udpServer;
+NewHTTPServer newHTTPServer(sensor);
 
 bool prevButtonState = HIGH;
 
@@ -48,6 +50,7 @@ void loop() {
     }
     udpServer.loop();
     tcpServer.loop();
+    newHTTPServer.loop();
 }
 
 
@@ -59,11 +62,11 @@ void setupSerial() {
 void startServices() {
     tcpServer.setup();
     udpServer.setup();
-    // httpServer.begin();
+    newHTTPServer.setup();
 }
 
 void stopServices() {
     tcpServer.stop();
     udpServer.stop();
-    // httpServer.stop();
+    newHTTPServer.stop();
 }
