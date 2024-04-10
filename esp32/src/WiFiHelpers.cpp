@@ -31,6 +31,7 @@ void setupIpSetup() {
     WiFi.config(0u, 0u, 0u);
     WiFiManager wm;
     wm.setCountry("PL");
+    wm.setConnectTimeout(15);
     IPAddressParameter ipParam("ip", "IP address", prefSettings.ip);
     IPAddressParameter maskParam("subnet", "Subnet mask", prefSettings.subnetMask);
     IPAddressParameter gatewayParam("gateway", "Default gateway", prefSettings.defaultGateway);
