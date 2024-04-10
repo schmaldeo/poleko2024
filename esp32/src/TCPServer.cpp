@@ -24,16 +24,23 @@ TCPServer::~TCPServer() {
 }
 
 void TCPServer::setup() {
+    if (started) {
+        return;
+    }
     if (stopped) {
         server = std::make_unique<AsyncServer>(port);
         stopped = false;
     }
     server->onClient(&handleClient, nullptr);
     server->begin();
+    started = true;
     log_e("TCP set up");
 }
 
 void TCPServer::stop() {
+    if (stopped) {
+        return;
+    }
     server = nullptr;
     for (auto client : clients) {
         delete client;
@@ -43,6 +50,7 @@ void TCPServer::stop() {
         timer.detachInterrupt();
     }
     stopped = true;
+    started = false;
     log_e("TCP stopped");
 }
 

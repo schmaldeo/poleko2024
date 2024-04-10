@@ -22,7 +22,8 @@ class TCPServer {
     std::vector<AsyncClient*> clients;
     ESP32Timer timer;
     bool interruptAttachedOnce;
-    bool stopped;
+    bool started = false;
+    bool stopped = false;
     unsigned short port;
     static TCPServer* instance;
     static bool timerHandle(void *_);
