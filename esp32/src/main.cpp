@@ -4,7 +4,6 @@
 #include "TCPServer.h"
 #include "EspUDPServer.h"
 #include "HTTPServer.h"
-#include "NewHTTPServer.h"
 #include <WiFiManager.h>
 #include <WiFi.h>
 #include <Preferences.h>
@@ -16,8 +15,8 @@ constexpr byte BOOT_BUTTON_PIN = 0;
 
 Sensor sensor(2, 16, 17);
 TCPServer tcpServer(sensor);
+HTTPServer HTTPServer(sensor);
 EspUDPServer udpServer;
-NewHTTPServer newHTTPServer(sensor);
 
 bool prevButtonState = HIGH;
 
@@ -50,7 +49,7 @@ void loop() {
     }
     udpServer.loop();
     tcpServer.loop();
-    newHTTPServer.loop();
+    HTTPServer.loop();
 }
 
 
@@ -62,11 +61,11 @@ void setupSerial() {
 void startServices() {
     tcpServer.setup();
     udpServer.setup();
-    newHTTPServer.setup();
+    HTTPServer.setup();
 }
 
 void stopServices() {
     tcpServer.stop();
     udpServer.stop();
-    newHTTPServer.stop();
+    HTTPServer.stop();
 }

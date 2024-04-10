@@ -1,9 +1,9 @@
 #include <WiFi.h>
 #include "Sensor.h"
 
-class NewHTTPServer {
+class HTTPServer {
     public:
-    NewHTTPServer(Sensor& sensor);
+    HTTPServer(Sensor& sensor);
     void setup();
     void stop();
     void loop();

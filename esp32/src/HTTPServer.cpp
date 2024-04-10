@@ -1,16 +1,16 @@
-#include "NewHTTPServer.h"
+#include "HTTPServer.h"
 
-NewHTTPServer::NewHTTPServer(Sensor& sensor): server(WiFiServer(80)), sensor(sensor) { }
+HTTPServer::HTTPServer(Sensor& sensor): server(WiFiServer(80)), sensor(sensor) { }
 
-void NewHTTPServer::setup() {
+void HTTPServer::setup() {
     server.begin();
 }
 
-void NewHTTPServer::stop() {
+void HTTPServer::stop() {
     server.stop();
 }
 
-void NewHTTPServer::loop() {
+void HTTPServer::loop() {
     auto client = server.accept();
 
     if (client) {
