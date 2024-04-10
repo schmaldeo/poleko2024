@@ -13,8 +13,6 @@
 // TODO find out why the first sensor reading is empty
 // ^ both might be doable with UDP broadcast
 
-// TODO log_e
-
 constexpr byte BOOT_BUTTON_PIN = 0;
 
 HardwareSerial SensorSerial(2);
@@ -49,9 +47,7 @@ void loop() {
         setupIpSetup();
     }
     udpServer.loop();
-    delay(1000);
     tcpServer.loop();
-
 }
 
 
