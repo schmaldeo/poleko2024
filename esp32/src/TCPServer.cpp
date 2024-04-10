@@ -24,7 +24,7 @@ TCPServer::~TCPServer() {
 void TCPServer::setup(Sensor& sensor) {
     server->onClient(&handleClient, static_cast<void*>(&sensor));
     server->begin();
-    Serial.println("TCP set up");
+    log_e("TCP set up");
 }
 
 void TCPServer::handleClient(void *arg, AsyncClient *client) {
