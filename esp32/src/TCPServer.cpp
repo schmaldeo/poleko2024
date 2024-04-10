@@ -18,25 +18,22 @@ server(new AsyncServer(port))
 }
 
 TCPServer::~TCPServer() {
-    server->end();
-    delete server;
     for (auto client : clients) {
         delete client;
     }
 }
 
 void TCPServer::setup() {
-    if (stoppedOnce) {
-        server = new AsyncServer(port);
+    if (stopped) {
+        server = std::make_unique<AsyncServer>(port);
+        stopped = false;
     }
-    server->onClient(&handleClient, static_cast<void*>(&sensor));
+    server->onClient(&handleClient, nullptr);
     server->begin();
     log_e("TCP set up");
 }
 
 void TCPServer::stop() {
-    server->end();
-    delete server;
     server = nullptr;
     for (auto client : clients) {
         delete client;
@@ -45,12 +42,11 @@ void TCPServer::stop() {
     if (interruptAttachedOnce) {
         timer.detachInterrupt();
     }
-    stoppedOnce = true;
+    stopped = true;
     log_e("TCP stopped");
 }
 
 void TCPServer::handleClient(void *arg, AsyncClient *client) {
-    Sensor* sensor = static_cast<Sensor*>(arg);
     log_e("new client has been connected to server, ip: %s", client->remoteIP().toString());
 
     if (instance->clients.size() == 0) {
@@ -71,9 +67,11 @@ void TCPServer::handleClient(void *arg, AsyncClient *client) {
 }
 
 void TCPServer::loop() {
-    if (timerFlag) {
-        timerFlag = false;
-        sendDataToClient();
+    if (!instance->stopped) {
+        if (timerFlag) {
+            timerFlag = false;
+            sendDataToClient();
+        }
     }
 }
 

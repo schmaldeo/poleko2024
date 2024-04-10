@@ -2,6 +2,7 @@
 #include <AsyncTCP.h>
 #include <Sensor.h>
 #include <ESP32TimerInterrupt.hpp>
+#include <memory>
 
 #pragma once
 
@@ -16,12 +17,12 @@ class TCPServer {
     static void loop();
 
     private:
-    AsyncServer* server;
+    std::shared_ptr<AsyncServer> server;
     Sensor& sensor;
     std::vector<AsyncClient*> clients;
     ESP32Timer timer;
     bool interruptAttachedOnce;
-    bool stoppedOnce;
+    bool stopped;
     unsigned short port;
     static TCPServer* instance;
     static bool timerHandle(void *_);
