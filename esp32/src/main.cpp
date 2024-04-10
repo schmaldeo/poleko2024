@@ -2,6 +2,7 @@
 #include "Sensor.h"
 #include "WiFiHelpers.h"
 #include "TCPServer.h"
+#include "HTTPServer.h"
 #include <WiFiManager.h>
 #include <WiFi.h>
 #include <Preferences.h>
@@ -9,13 +10,13 @@
 // TODO add sensors by mac
 // TODO network discovery
 // ^ both might be doable with UDP broadcast
-// TODO http endpoint, json in http and tcp
 
 constexpr byte BOOT_BUTTON_PIN = 0;
 
 HardwareSerial SensorSerial(2);
 Sensor sensor(SensorSerial);
 TCPServer tcpServer(5505);
+HTTPServer httpServer(sensor);
 
 bool prevButtonState = HIGH;
 
@@ -26,6 +27,7 @@ void setup() {
     // this blocks because config portal blocks
     setupWiFi();
     tcpServer.setup(sensor);
+    httpServer.begin();
 }
 
 void loop() {
