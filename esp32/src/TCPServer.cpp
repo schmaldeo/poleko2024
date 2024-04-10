@@ -53,9 +53,9 @@ void TCPServer::loop() {
 
 
 bool TCPServer::sendDataToClient() {
+    auto str = instance->sensor.getJsonString();
     for (auto client : instance->clients) {
         if (client->connected()) {
-            auto str = instance->sensor.getJsonString();
             client->add(str.c_str(), strlen(str.c_str()));
             client->send();
         }
