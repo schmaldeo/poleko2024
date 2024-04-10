@@ -5,6 +5,7 @@ HTTPServer::HTTPServer(Sensor& sensor, unsigned short port) : sensor(sensor), se
 void HTTPServer::begin() {
     server->addHandler(new RequestHandler(sensor)).setFilter(ON_STA_FILTER);
     server->begin();
+    Serial.println("HTTP set up");
 }
 
 bool HTTPServer::RequestHandler::canHandle(AsyncWebServerRequest *request) {

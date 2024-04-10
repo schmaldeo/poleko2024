@@ -9,6 +9,7 @@
 
 // TODO add sensors by mac
 // TODO network discovery
+// TODO find out why the first sensor reading is empty
 // ^ both might be doable with UDP broadcast
 
 constexpr byte BOOT_BUTTON_PIN = 0;
@@ -53,5 +54,4 @@ void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin) {
     // TODO move to Sensor, Serial0 initialisation should be optional
     Serial.begin(9600);
     sensorSerial.begin(19200, SERIAL_8N1, rxPin, txPin);
-    sensorSerial.print("{F99RDD\r\n}");
 }
