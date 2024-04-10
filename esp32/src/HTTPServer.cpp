@@ -8,6 +8,10 @@ void HTTPServer::begin() {
     log_e("HTTP set up");
 }
 
+void HTTPServer::stop() {
+    server->end();
+}
+
 bool HTTPServer::RequestHandler::canHandle(AsyncWebServerRequest *request) {
     return true;
 }

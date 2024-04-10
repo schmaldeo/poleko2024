@@ -7,6 +7,7 @@ class HTTPServer {
     public:
     HTTPServer(Sensor& sensor, unsigned short port = 80);
     void begin();
+    void stop();
 
     private:
     AsyncWebServer* server;
