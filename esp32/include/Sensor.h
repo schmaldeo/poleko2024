@@ -6,11 +6,11 @@
 
 class Sensor {
 public:
-    Sensor(HardwareSerial& hardwareSerial);
+    Sensor(int uartNr, int rxPin, int txPin);
     std::pair<float, float> getSensorData();
     String getJsonString();
 private:
-    HardwareSerial& serial;
+    HardwareSerial serial;
     String readSensorData();
     std::pair<float, float> processSensorData(String& sensorData);
 };

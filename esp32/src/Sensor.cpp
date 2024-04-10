@@ -3,9 +3,9 @@
 #include <Sensor.h>
 #include <ArduinoJson.h>
 
-/// @brief 
-/// @param hardwareSerial Serial interface of the interface. IMPORTANT: it must already be set up and initialised 
-Sensor::Sensor(HardwareSerial& hardwareSerial) : serial(hardwareSerial) { }
+Sensor::Sensor(int uartNr, int rxPin, int txPin) : serial(HardwareSerial(uartNr)) {
+    serial.begin(19200, SERIAL_8N1, rxPin, txPin);
+}
 
 /// @brief Gets data from the sensor
 /// @return std::pair where the first item is the humidity and the second item is the temperature

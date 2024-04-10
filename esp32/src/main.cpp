@@ -8,25 +8,21 @@
 #include <WiFi.h>
 #include <Preferences.h>
 
-// TODO add sensors by mac
-// TODO network discovery
 // TODO find out why the first sensor reading is empty
-// ^ both might be doable with UDP broadcast
 
 constexpr byte BOOT_BUTTON_PIN = 0;
 
-HardwareSerial SensorSerial(2);
-Sensor sensor(SensorSerial);
+Sensor sensor(2, 16, 17);
 TCPServer tcpServer(sensor);
 HTTPServer httpServer(sensor);
 EspUDPServer udpServer;
 
 bool prevButtonState = HIGH;
 
-void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin);
+void setupSerial();
 
 void setup() {
-    setupSerial(SensorSerial, 16, 17);
+    setupSerial();
     // this blocks because config portal blocks
     setupWiFi();
     // TODO check out how these three handle connection loss
@@ -51,12 +47,7 @@ void loop() {
 }
 
 
-/// @brief Sets up UART communication
-/// @param sensorSerial A reference to the HardwareSerial object related to the sensor
-/// @param rxPin RxD pin the sensor is plugged into
-/// @param txPin TxD pin the sensor is plugged into
-void setupSerial(HardwareSerial& sensorSerial, int rxPin, int txPin) {
-    // TODO move to Sensor, Serial0 initialisation should be optional
+/// @brief Sets up UART with PC through USB
+void setupSerial() {
     Serial.begin(9600);
-    sensorSerial.begin(19200, SERIAL_8N1, rxPin, txPin);
 }
