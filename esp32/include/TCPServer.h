@@ -17,6 +17,7 @@ class TCPServer {
     AsyncServer* server;
     Sensor& sensor;
     std::vector<AsyncClient*> clients;
+    ESP32Timer timer;
     static TCPServer* instance;
     static bool timerHandle(void *_);
     static bool sendDataToClient();

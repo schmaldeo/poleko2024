@@ -3,14 +3,12 @@
 #include <ESP32TimerInterrupt.h>
 #include <ArduinoJson.h>
 
-// TODO field thats an vector for timers, on disconnect or timeout remove the timer, request interval change either through tcp or http
-
 // TODO client adds the interval on connection
 
 volatile bool timerFlag = false;
 TCPServer* TCPServer::instance = nullptr;
 
-TCPServer::TCPServer(Sensor& sensor, unsigned short port) : server(new AsyncServer(port)), sensor(sensor) {
+TCPServer::TCPServer(Sensor& sensor, unsigned short port) : server(new AsyncServer(port)), sensor(sensor), timer(ESP32Timer(1)) {
     // TODO implement singleton
     instance = this;
 }
@@ -27,12 +25,13 @@ void TCPServer::setup() {
 
 void TCPServer::handleClient(void *arg, AsyncClient *client) {
     Sensor* sensor = static_cast<Sensor*>(arg);
-    log_e("new client has been connected to server, ip: %d", client->remoteIP().toString());
+    log_e("new client has been connected to server, ip: %s", client->remoteIP().toString());
+
+    if (instance->clients.size() == 0) {
+        instance->timer.attachInterrupt(0.5, timerHandle);
+    }
 
     instance->clients.push_back(client);
-
-    ESP32Timer timer(1);
-    timer.attachInterrupt(0.5, timerHandle);
 
     client->onData(&handleData, nullptr);
     client->onError(&handleError, nullptr);
@@ -73,9 +72,26 @@ void TCPServer::handleError(void *arg, AsyncClient *client, int8_t error) {
 }
 
 void TCPServer::handleDisconnect(void *arg, AsyncClient *client) {
-    Serial.println("disconnect");
+    log_e("Client disconnected, IP: %s", client->remoteIP().toString());
+    auto iterator = std::find(instance->clients.begin(), instance->clients.end(), client);
+    if (iterator != instance->clients.end()) {
+        instance->clients.erase(iterator);
+    }
+
+    if (instance->clients.size() == 0) {
+        instance->timer.detachInterrupt();
+    }
 }
 
 void TCPServer::handleTimeout(void *arg, AsyncClient *client, uint32_t time) {
     Serial.println("timeout");
+    log_e("Client timed out, IP: %s", client->remoteIP().toString());
+    auto iterator = std::find(instance->clients.begin(), instance->clients.end(), client);
+    if (iterator != instance->clients.end()) {
+        instance->clients.erase(iterator);
+    }
+
+    if (instance->clients.size() == 0) {
+        instance->timer.detachInterrupt();
+    }
 }
