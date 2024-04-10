@@ -12,6 +12,8 @@ class HTTPServer {
     private:
     AsyncWebServer* server;
     Sensor& sensor;
+    bool stoppedOnce;
+    unsigned short port;
     class RequestHandler : public AsyncWebHandler {
         public:
         RequestHandler(Sensor& sensor) : sensor(sensor) { }

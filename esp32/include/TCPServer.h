@@ -12,6 +12,7 @@ class TCPServer {
     TCPServer(const TCPServer&) = delete;
     TCPServer& operator=(const TCPServer&) = delete;
     void setup();
+    void stop();
     static void loop();
 
     private:
@@ -20,6 +21,8 @@ class TCPServer {
     std::vector<AsyncClient*> clients;
     ESP32Timer timer;
     bool interruptAttachedOnce;
+    bool stoppedOnce;
+    unsigned short port;
     static TCPServer* instance;
     static bool timerHandle(void *_);
     static bool sendDataToClient();

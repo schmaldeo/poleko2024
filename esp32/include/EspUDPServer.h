@@ -10,12 +10,15 @@ class EspUDPServer {
     public:
     EspUDPServer();
     void setup(unsigned short port = 5506);
+    void stop();
     void loop();
     void sendPacket();
     static bool timerHandle(void *_);
     
     private:
     volatile bool timerFlag;
+    bool stoppedOnce;
+    ESP32Timer timer;
     WiFiUDP udp;
     // need to do this because no callback signature in timer library accepts parameters
     static EspUDPServer* instance;

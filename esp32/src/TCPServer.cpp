@@ -8,19 +8,45 @@
 volatile bool timerFlag = false;
 TCPServer* TCPServer::instance = nullptr;
 
-TCPServer::TCPServer(Sensor& sensor, unsigned short port) : server(new AsyncServer(port)), sensor(sensor), timer(ESP32Timer(1)) {
+TCPServer::TCPServer(Sensor& sensor, unsigned short port) : 
+server(new AsyncServer(port))
+, sensor(sensor)
+, timer(ESP32Timer(1))
+, port(port) {
     // TODO implement singleton
     instance = this;
 }
 
 TCPServer::~TCPServer() {
+    server->end();
     delete server;
+    for (auto client : clients) {
+        delete client;
+    }
 }
 
 void TCPServer::setup() {
+    if (stoppedOnce) {
+        server = new AsyncServer(port);
+    }
     server->onClient(&handleClient, static_cast<void*>(&sensor));
     server->begin();
     log_e("TCP set up");
+}
+
+void TCPServer::stop() {
+    server->end();
+    delete server;
+    server = nullptr;
+    for (auto client : clients) {
+        delete client;
+    }
+    clients.clear();
+    if (interruptAttachedOnce) {
+        timer.detachInterrupt();
+    }
+    stoppedOnce = true;
+    log_e("TCP stopped");
 }
 
 void TCPServer::handleClient(void *arg, AsyncClient *client) {
