@@ -13,10 +13,9 @@ class EspUDPServer {
     void loop();
     void sendPacket();
     static bool timerHandle(void *_);
-
-    bool flag;
     
     private:
+    volatile bool timerFlag;
     WiFiUDP udp;
     // need to do this because no callback signature in timer library accepts parameters
     static EspUDPServer* instance;
