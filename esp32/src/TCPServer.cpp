@@ -28,7 +28,12 @@ void TCPServer::handleClient(void *arg, AsyncClient *client) {
     log_e("new client has been connected to server, ip: %s", client->remoteIP().toString());
 
     if (instance->clients.size() == 0) {
-        instance->timer.attachInterrupt(0.5, timerHandle);
+        if (!instance->interruptAttachedOnce) {
+            instance->timer.attachInterrupt(0.5, timerHandle);
+            instance->interruptAttachedOnce = true;
+        } else {
+            instance->timer.reattachInterrupt();
+        }
     }
 
     instance->clients.push_back(client);
@@ -72,7 +77,7 @@ void TCPServer::handleError(void *arg, AsyncClient *client, int8_t error) {
 }
 
 void TCPServer::handleDisconnect(void *arg, AsyncClient *client) {
-    log_e("Client disconnected, IP: %s", client->remoteIP().toString());
+    log_e("Client disconnected");
     auto iterator = std::find(instance->clients.begin(), instance->clients.end(), client);
     if (iterator != instance->clients.end()) {
         instance->clients.erase(iterator);
@@ -84,7 +89,6 @@ void TCPServer::handleDisconnect(void *arg, AsyncClient *client) {
 }
 
 void TCPServer::handleTimeout(void *arg, AsyncClient *client, uint32_t time) {
-    Serial.println("timeout");
     log_e("Client timed out, IP: %s", client->remoteIP().toString());
     auto iterator = std::find(instance->clients.begin(), instance->clients.end(), client);
     if (iterator != instance->clients.end()) {
