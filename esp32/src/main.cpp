@@ -3,6 +3,7 @@
 #include "WiFiHelpers.h"
 #include "TCPServer.h"
 #include "HTTPServer.h"
+#include "EspUDPServer.h"
 #include <WiFiManager.h>
 #include <WiFi.h>
 #include <Preferences.h>
@@ -12,12 +13,15 @@
 // TODO find out why the first sensor reading is empty
 // ^ both might be doable with UDP broadcast
 
+// TODO log_e
+
 constexpr byte BOOT_BUTTON_PIN = 0;
 
 HardwareSerial SensorSerial(2);
 Sensor sensor(SensorSerial);
 TCPServer tcpServer(5505);
 HTTPServer httpServer(sensor);
+EspUDPServer udpServer;
 
 bool prevButtonState = HIGH;
 
@@ -27,7 +31,9 @@ void setup() {
     setupSerial(SensorSerial, 16, 17);
     // this blocks because config portal blocks
     setupWiFi();
+    // TODO check out how these three handle connection loss
     tcpServer.setup(sensor);
+    udpServer.setup();
     httpServer.begin();
 }
 
@@ -42,7 +48,10 @@ void loop() {
         digitalWrite(LED_PIN, LOW);
         setupIpSetup();
     }
+    udpServer.loop();
+    delay(1000);
     tcpServer.loop();
+
 }
 
 
