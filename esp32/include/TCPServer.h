@@ -7,14 +7,17 @@
 
 class TCPServer {
     public:
-    TCPServer(unsigned short port);
+    TCPServer(Sensor& sensor, unsigned short port = 5505);
     ~TCPServer();
     TCPServer(const TCPServer&) = delete;
     TCPServer& operator=(const TCPServer&) = delete;
-    void setup(Sensor& sensor);
+    void setup();
     static void loop();
     private:
     AsyncServer* server;
+    Sensor& sensor;
+    std::vector<AsyncClient*> clients;
+    static TCPServer* instance;
     static bool timerHandle(void *_);
     static bool sendDataToClient();
     static void handleClient(void *arg, AsyncClient *client);

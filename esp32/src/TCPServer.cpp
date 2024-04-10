@@ -7,21 +7,19 @@
 
 // TODO client adds the interval on connection
 
-// TODO figure out how to deal with the timer callback in case more connections are handled
-
-// TODO try lambdas or std::bind here in place of those timer handlers
-
-AsyncClient *globalClient = nullptr;
-Sensor *globalSensor = nullptr;
 volatile bool timerFlag = false;
+TCPServer* TCPServer::instance = nullptr;
 
-TCPServer::TCPServer(unsigned short port) : server(new AsyncServer(port)) { }
+TCPServer::TCPServer(Sensor& sensor, unsigned short port) : server(new AsyncServer(port)), sensor(sensor) {
+    // TODO implement singleton
+    instance = this;
+}
 
 TCPServer::~TCPServer() {
     delete server;
 }
 
-void TCPServer::setup(Sensor& sensor) {
+void TCPServer::setup() {
     server->onClient(&handleClient, static_cast<void*>(&sensor));
     server->begin();
     log_e("TCP set up");
@@ -29,13 +27,11 @@ void TCPServer::setup(Sensor& sensor) {
 
 void TCPServer::handleClient(void *arg, AsyncClient *client) {
     Sensor* sensor = static_cast<Sensor*>(arg);
-    Serial.print("new client has been connected to server, ip:");
-    Serial.println(client->remoteIP().toString().c_str());
+    log_e("new client has been connected to server, ip: %d", client->remoteIP().toString());
 
-    globalClient = client;
-    globalSensor = sensor;
+    instance->clients.push_back(client);
 
-    ESP32Timer timer(0);
+    ESP32Timer timer(1);
     timer.attachInterrupt(0.5, timerHandle);
 
     client->onData(&handleData, nullptr);
@@ -53,10 +49,12 @@ void TCPServer::loop() {
 
 
 bool TCPServer::sendDataToClient() {
-    if (globalClient->connected()) {
-        auto str = globalSensor->getJsonString();
-        globalClient->add(str.c_str(), strlen(str.c_str()));
-        globalClient->send();
+    for (auto client : instance->clients) {
+        if (client->connected()) {
+            auto str = instance->sensor.getJsonString();
+            client->add(str.c_str(), strlen(str.c_str()));
+            client->send();
+        }
     }
     return true;
 }

@@ -17,7 +17,7 @@ constexpr byte BOOT_BUTTON_PIN = 0;
 
 HardwareSerial SensorSerial(2);
 Sensor sensor(SensorSerial);
-TCPServer tcpServer(5505);
+TCPServer tcpServer(sensor);
 HTTPServer httpServer(sensor);
 EspUDPServer udpServer;
 
@@ -30,7 +30,7 @@ void setup() {
     // this blocks because config portal blocks
     setupWiFi();
     // TODO check out how these three handle connection loss
-    tcpServer.setup(sensor);
+    tcpServer.setup();
     udpServer.setup();
     httpServer.begin();
 }
