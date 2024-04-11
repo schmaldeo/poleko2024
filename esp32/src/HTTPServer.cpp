@@ -29,14 +29,12 @@ void HTTPServer::loop() {
     auto client = server.accept();
 
     if (client) {
-        Serial.println("New Client.");           // print a message out the serial port
-        String currentLine = "";                // make a String to hold incoming data from the client
-        while (client.connected()) {            // loop while the client's connected
-            if (client.available()) {             // if there's bytes to read from the client,
-                char c = client.read();             // read a byte, then
-                Serial.write(c);                    // print it out the serial monitor
-                if (c == '\n') {                    // if the byte is a newline character
-
+        log_e("Client connected");
+        String currentLine = "";
+        while (client.connected()) {
+            if (client.available()) {
+                char c = client.read();
+                if (c == '\n') {
                     // if the current line is blank, you got two newline characters in a row.
                     // that's the end of the client HTTP request, so send a response:
                     if (currentLine.length() == 0) {
@@ -51,18 +49,16 @@ void HTTPServer::loop() {
 
                         // The HTTP response ends with another blank line:
                         client.println();
-                        // break out of the while loop:
                         break;
-                    } else {    // if you got a newline, then clear currentLine:
+                    } else {
                         currentLine = "";
                     }
-                } else if (c != '\r') {  // if you got anything else but a carriage return character,
-                    currentLine += c;      // add it to the end of the currentLine
+                } else if (c != '\r') {
+                    currentLine += c;
                 }
             }
         }
-        // close the connection:
         client.stop();
-        Serial.println("Client Disconnected.");
+        log_e("Client disconnected");
     }
 }
