@@ -30,6 +30,9 @@ void setupIpSetup() {
     // reset static IP in case user wants to switch to another network
     WiFi.config(0u, 0u, 0u);
     WiFiManager wm;
+    // TODO use these??
+    // wm.getWLStatusString();
+    // wm.getLastConxResult();
     wm.setCountry("PL");
     wm.setConnectTimeout(15);
     IPAddressParameter ipParam("ip", "IP address", prefSettings.ip);
@@ -43,6 +46,8 @@ void setupIpSetup() {
     bool connectedOrChangedWiFi = wm.startConfigPortal();
 
     // if the user used the portal to connect to connect to a different WiFi AP, set DHCP
+    // TODO this basically forces DHCP, not too good after all
+    // TODO maybe just add a DHCP switch
     if (connectedOrChangedWiFi) {
         auto dhcpSettings = IpSettings{0u, 0u, 0u};
         saveIpSettings(preferences, dhcpSettings);

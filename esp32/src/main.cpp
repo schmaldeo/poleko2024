@@ -8,14 +8,14 @@
 #include <WiFi.h>
 #include <Preferences.h>
 
-// TODO change raw pointers to smart pointers
 // TODO find out why the first sensor reading is empty
+// TODO if changed wifi in setup() remove static ip bindings
 
 constexpr byte BOOT_BUTTON_PIN = 0;
 
 Sensor sensor(2, 16, 17);
 TCPServer tcpServer(sensor);
-HTTPServer HTTPServer(sensor);
+HTTPServer httpServer(sensor);
 EspUDPServer udpServer;
 
 bool prevButtonState = HIGH;
@@ -28,7 +28,6 @@ void setup() {
     setupSerial();
     // this blocks because config portal blocks
     setupWiFi();
-    // TODO check out how these three handle connection loss
     startServices();
 }
 
@@ -40,16 +39,18 @@ void loop() {
         startServices();
     }
     prevButtonState = buttonState;
-    // TODO test if this works properly connection lost
     if (WiFi.status() != WL_CONNECTED) {
         stopServices();
         digitalWrite(LED_PIN, LOW);
+        // TODO check what happens if this wifi setup fails
         setupIpSetup();
         startServices();
+        // TODO move this to setupIpSetup
+        digitalWrite(LED_PIN, HIGH);
     }
     udpServer.loop();
     tcpServer.loop();
-    HTTPServer.loop();
+    httpServer.loop();
 }
 
 
@@ -61,11 +62,11 @@ void setupSerial() {
 void startServices() {
     tcpServer.setup();
     udpServer.setup();
-    HTTPServer.setup();
+    httpServer.setup();
 }
 
 void stopServices() {
     tcpServer.stop();
     udpServer.stop();
-    HTTPServer.stop();
+    httpServer.stop();
 }
