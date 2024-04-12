@@ -12,6 +12,7 @@ void setupWiFi() {
     WiFi.config(ipSettings.ip, ipSettings.defaultGateway, ipSettings.subnetMask);
     pinMode(LED_PIN, OUTPUT);
     WiFiManager wm;
+    wm.setCountry("PL");
     wm.setConnectTimeout(15);
     bool connected = wm.autoConnect();
     if (WiFi.status() == WL_CONNECTED) {
@@ -23,8 +24,6 @@ void setupWiFi() {
 }
 
 void setupIpSetup() {
-    // TODO fix incorrect display order it saves good but displays bad
-    // TODO add params to the initial setup as well
     Preferences preferences;
     auto prefSettings = getSavedIpSettings(preferences);
 
@@ -55,7 +54,7 @@ void setupIpSetup() {
     IPAddress paramGateway = gatewayParam.getValue();
     IPAddress paramMask = maskParam.getValue();
     if ((prefSettings.ip != paramIp) || (prefSettings.defaultGateway != paramGateway) || (prefSettings.subnetMask != paramMask)) {
-        auto settings = IpSettings{paramIp, paramGateway, paramMask};
+        auto settings = IpSettings{paramIp, paramMask, paramGateway};
         saveIpSettings(preferences, settings);
         WiFi.config(paramIp, paramGateway, paramMask);
     }
