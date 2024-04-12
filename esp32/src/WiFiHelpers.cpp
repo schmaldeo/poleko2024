@@ -22,17 +22,13 @@ void setupWiFi() {
     }
 }
 
-// TODO do more testing on static ip
 void setupIpSetup() {
+    // TODO fix incorrect display order it saves good but displays bad
+    // TODO add params to the initial setup as well
     Preferences preferences;
     auto prefSettings = getSavedIpSettings(preferences);
 
-    // reset static IP in case user wants to switch to another network
-    WiFi.config(0u, 0u, 0u);
     WiFiManager wm;
-    // TODO use these??
-    // wm.getWLStatusString();
-    // wm.getLastConxResult();
     wm.setCountry("PL");
     wm.setConnectTimeout(15);
     IPAddressParameter ipParam("ip", "IP address", prefSettings.ip);
@@ -45,28 +41,23 @@ void setupIpSetup() {
     wm.setMenu(menu);
     bool connectedOrChangedWiFi = wm.startConfigPortal();
 
-    // if the user used the portal to connect to connect to a different WiFi AP, set DHCP
-    // TODO this basically forces DHCP, not too good after all
-    // TODO maybe just add a DHCP switch
+    // if the user got disconnected but connected again, put the connection LED back on
     if (connectedOrChangedWiFi) {
-        auto dhcpSettings = IpSettings{0u, 0u, 0u};
-        saveIpSettings(preferences, dhcpSettings);
-        return;
+        digitalWrite(LED_PIN, HIGH);
     }
 
     // check if:
     // 1. all are valid
     // 2. at least one is different from the one stored
     // then WiFi.config and preferences.put
-    if (ipParam.isValid() && gatewayParam.isValid() && maskParam.isValid()) {
-        IPAddress paramIp = ipParam.getValue();
-        IPAddress paramGateway = gatewayParam.getValue();
-        IPAddress paramMask = maskParam.getValue();
-        if ((prefSettings.ip != paramIp) || (prefSettings.defaultGateway != paramGateway) || (prefSettings.subnetMask != paramMask)) {
-            auto settings = IpSettings{paramIp, paramGateway, paramMask};
-            saveIpSettings(preferences, settings);
-            WiFi.config(paramIp, paramGateway, paramMask);
-        }
+    // getValue() assures validity of the address (it's either valid or 0.0.0.0 in which case DHCP activates)
+    IPAddress paramIp = ipParam.getValue();
+    IPAddress paramGateway = gatewayParam.getValue();
+    IPAddress paramMask = maskParam.getValue();
+    if ((prefSettings.ip != paramIp) || (prefSettings.defaultGateway != paramGateway) || (prefSettings.subnetMask != paramMask)) {
+        auto settings = IpSettings{paramIp, paramGateway, paramMask};
+        saveIpSettings(preferences, settings);
+        WiFi.config(paramIp, paramGateway, paramMask);
     }
 }
 
@@ -98,11 +89,16 @@ IPAddressParameter::IPAddressParameter(const char *id, const char *placeholder, 
 
 IPAddress IPAddressParameter::getValue() {
     IPAddress ip;
-    ip.fromString(WiFiManagerParameter::getValue());
+    Serial.println(WiFiManagerParameter::getValue());
+    if (isValid()) {
+        ip.fromString(WiFiManagerParameter::getValue());
+    } else {
+        ip = IPAddress(0u);
+    }
     return ip;
 }
 
 bool IPAddressParameter::isValid() {
     IPAddress ip;
-    return ip.fromString(WiFiManagerParameter::getValue()) && ip != 0;
+    return ip.fromString(WiFiManagerParameter::getValue());
 }
