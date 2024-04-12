@@ -8,9 +8,6 @@
 #include <WiFi.h>
 #include <Preferences.h>
 
-// TODO find out why the first sensor reading is empty
-// TODO if changed wifi in setup() remove static ip bindings
-
 constexpr byte BOOT_BUTTON_PIN = 0;
 
 Sensor sensor(2, 16, 17);
@@ -40,13 +37,10 @@ void loop() {
     }
     prevButtonState = buttonState;
     if (WiFi.status() != WL_CONNECTED) {
-        stopServices();
         digitalWrite(LED_PIN, LOW);
-        // TODO check what happens if this wifi setup fails
+        stopServices();
         setupIpSetup();
         startServices();
-        // TODO move this to setupIpSetup
-        digitalWrite(LED_PIN, HIGH);
     }
     udpServer.loop();
     tcpServer.loop();
