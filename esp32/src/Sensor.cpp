@@ -34,7 +34,7 @@ String Sensor::readSensorData() {
 
     // sometimes the sensor returns an empty string, so retries are there just to make sure you actually get something if its connected
     byte retries = 0;
-    while (retries < 3) {
+    while (retries < 5) {
         while (serial.available() > 0) {
             char receivedChar = serial.read();
 
@@ -45,6 +45,7 @@ String Sensor::readSensorData() {
             }
         }
         retries += 1;
+        delay(100);
     }
 
     return receivedMessage;
