@@ -32,14 +32,19 @@ String Sensor::readSensorData() {
     char receivedChar;
     String receivedMessage = "";
 
-    while (serial.available() > 0) {
-        char receivedChar = serial.read();
+    // sometimes the sensor returns an empty string, so retries are there just to make sure you actually get something if its connected
+    byte retries = 0;
+    while (retries < 3) {
+        while (serial.available() > 0) {
+            char receivedChar = serial.read();
 
-        if (receivedChar == 0xD) {
-            return receivedMessage;
-        } else {
-            receivedMessage += receivedChar;
+            if (receivedChar == 0xD) {
+                return receivedMessage;
+            } else {
+                receivedMessage += receivedChar;
+            }
         }
+        retries += 1;
     }
 
     return receivedMessage;
