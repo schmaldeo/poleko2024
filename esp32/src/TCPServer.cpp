@@ -2,8 +2,7 @@
 #include <sstream>
 #include <ESP32TimerInterrupt.h>
 #include <ArduinoJson.h>
-
-// TODO client adds the interval on connection
+#include <driver/timer.h>
 
 volatile bool timerFlag = false;
 TCPServer* TCPServer::instance = nullptr;
@@ -101,7 +100,18 @@ bool TCPServer::timerHandle(void *_) {
 }
 
 void TCPServer::handleData(void *arg, AsyncClient *client, void *data, size_t len) {
-    Serial.println("data");
+    auto input = static_cast<char*>(data);
+    JsonDocument doc;
+    deserializeJson(doc, input);
+    // no need to validate the json because even if it's invalid it doesnt throw an exception, 
+    //the check for existence of a key in the document is the more important part
+    float interval = doc["interval"];
+    if (interval) {
+        timer_set_counter_value(TIMER_GROUP_0, TIMER_1, 0);
+        timer_set_alarm_value(TIMER_GROUP_0, TIMER_1, interval * 1000000);
+        timer_start(TIMER_GROUP_0, TIMER_1);
+        log_e("Set TCP timer interval to %f", interval);
+    }
 }
 
 void TCPServer::handleError(void *arg, AsyncClient *client, int8_t error) {
