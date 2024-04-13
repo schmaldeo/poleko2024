@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include <utility>
 
-#ifndef SENSOR_H
-#define SENSOR_H
+#pragma once
 
 class Sensor {
 public:
@@ -14,5 +13,3 @@ private:
     String readSensorData();
     std::pair<float, float> processSensorData(String& sensorData);
 };
-
-#endif

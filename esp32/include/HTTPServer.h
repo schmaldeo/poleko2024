@@ -1,6 +1,8 @@
 #include <WiFi.h>
 #include "Sensor.h"
 
+#pragma once
+
 class HTTPServer {
     public:
     HTTPServer(Sensor& sensor);
