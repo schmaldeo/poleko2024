@@ -1,0 +1,133 @@
+﻿@rendermode InteractiveServer
+@page "/Device/Add"
+@attribute [Authorize(Roles="SuperAdmin, Admin")]
+
+@using System.Net.Sockets
+@using System.Text
+@using System.Text.Json;
+@using System.Text.RegularExpressions
+@using Microsoft.EntityFrameworkCore
+@using PolekoWebApp.Data;
+@inject IDbContextFactory<ApplicationDbContext> DbContextFactory
+
+
+<PageTitle>Dodaj nowe czujniki</PageTitle>
+
+<MudItem sm="5" Class="ma-auto">
+    <MudPaper Class="pa-4">
+        <h3>Dodaj czujnik</h3>
+        <MudForm bind-IsValid="_isFormValid">
+            <MudTextField T="string" Label="Adres IP" @bind-Value="IpAddress"
+                          Validation="@(new Func<string, IEnumerable<string>>(IpAddressValidation))"/>
+            <MudTextField T="string" Label="Adres MAC" @bind-Value="MacAddress"
+                          Validation="@(new Func<string, IEnumerable<string>>(MacAddressValidation))"/>
+
+            @if (!_listeningStopped)
+            {
+                <span class="ma-auto">
+                    <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true"/>
+                    Wyszukiwanie czujników w sieci...
+                </span>
+            }
+            <MudDataGrid Items="Sensors" T="Sensor" RowClick="OnRowClick" RowStyle="cursor: pointer;" Class="ma-3" Elevation="3" Dense="true">
+                <Columns>
+                    <PropertyColumn Property="x => x.IpAddress" Title="IP" role="button"/>
+                    <PropertyColumn Property="x => x.MacAddress" Title="MAC" role="button"/>
+                </Columns>
+            </MudDataGrid>
+            @if (_listeningStopped && Sensors.Count == 0)
+            {
+                <span>Nie znaleziono żadnych czujników w sieci</span>
+            }
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">
+                Dodaj
+            </MudButton>
+        </MudForm>
+    </MudPaper>
+</MudItem>
+
+@code {
+    
+    public string IpAddress { get; set; }
+    public string MacAddress { get; set; }
+    private List<Sensor> Sensors { get; set; } = [];
+    
+    private bool _listeningStopped;
+    private bool _isFormValid;
+
+    private async Task Submit()
+    {
+        if (_isFormValid)
+        {
+            // TODO if ip empty, check for mac in the fetched devices and incoming traffic if doesnt exist in devices
+        }
+    }
+
+    private async Task ListenForDevices()
+    {
+        var udpClient = new UdpClient(5506);
+        var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(5));
+        try
+        {
+            while (!cancellationTokenSource.Token.IsCancellationRequested)
+            {
+                var result = await udpClient.ReceiveAsync(cancellationTokenSource.Token);
+                var resultStr = Encoding.UTF8.GetString(result.Buffer);
+                var device = JsonSerializer.Deserialize<Sensor>(resultStr)!;
+                if (!Sensors.Contains(device))
+                {
+                    Sensors.Add(device);
+                }
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _listeningStopped = true;
+        }
+        finally
+        {
+            udpClient.Close();
+            _listeningStopped = true;
+            StateHasChanged();
+        }
+    }
+
+    private void OnRowClick(DataGridRowClickEventArgs<Sensor> args)
+    {
+        IpAddress = args.Item.IpAddress!;
+        MacAddress = args.Item.MacAddress!;
+    }
+    
+    private IEnumerable<string> IpAddressValidation(string ip)
+    {
+        // accept empty field because we want to allow the form to be submitted with only one field filled out
+        if (string.IsNullOrWhiteSpace(ip))
+        {
+            yield break;
+        }
+        if (!Regex.IsMatch(ip, @"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"))
+            yield return "Nieprawidłowy adres IP";
+    }
+    
+    private IEnumerable<string> MacAddressValidation(string mac)
+    {
+        // same case as in IpAddressValidation
+        if (string.IsNullOrWhiteSpace(mac))
+        {
+            yield break;
+        }
+        if (!Regex.IsMatch(mac, "^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$"))
+            yield return "Nieprawidłowy adres MAC";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ListenForDevices();
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+}
