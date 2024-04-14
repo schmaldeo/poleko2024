@@ -1,5 +1,6 @@
 ﻿@rendermode InteractiveServer
 @page "/Device/Add"
+@layout MainLayout
 @attribute [Authorize(Roles="SuperAdmin, Admin")]
 
 @using System.Net.Sockets
@@ -7,39 +8,45 @@
 @using System.Text.Json;
 @using System.Text.RegularExpressions
 @using Microsoft.EntityFrameworkCore
+@using PolekoWebApp.Components.Layout
 @using PolekoWebApp.Data;
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
+@inject NavigationManager NavigationManager
 
-
+@* TODO fix the socket issue *@
 <PageTitle>Dodaj nowe czujniki</PageTitle>
 
 <MudItem sm="5" Class="ma-auto">
     <MudPaper Class="pa-4">
         <h3>Dodaj czujnik</h3>
-        <MudForm bind-IsValid="_isFormValid">
+        <MudForm @ref="_form" Class="d-flex flex-column">
             <MudTextField T="string" Label="Adres IP" @bind-Value="IpAddress"
                           Validation="@(new Func<string, IEnumerable<string>>(IpAddressValidation))"/>
             <MudTextField T="string" Label="Adres MAC" @bind-Value="MacAddress"
-                          Validation="@(new Func<string, IEnumerable<string>>(MacAddressValidation))"/>
+                          Validation="@(new Func<string, IEnumerable<string>>(MacAddressValidation))" Class="mb-4"/>
 
             @if (!_listeningStopped)
             {
-                <span class="ma-auto">
-                    <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true"/>
+                <span class="align-self-center d-flex align-center">
+                    <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" Class="mr-2"/>
                     Wyszukiwanie czujników w sieci...
                 </span>
             }
-            <MudDataGrid Items="Sensors" T="Sensor" RowClick="OnRowClick" RowStyle="cursor: pointer;" Class="ma-3" Elevation="3" Dense="true">
-                <Columns>
-                    <PropertyColumn Property="x => x.IpAddress" Title="IP" role="button"/>
-                    <PropertyColumn Property="x => x.MacAddress" Title="MAC" role="button"/>
-                </Columns>
-            </MudDataGrid>
+            @if (Sensors.Count > 0)
+            {
+                <MudDataGrid Items="Sensors" T="Sensor" RowClick="OnRowClick" RowStyle="cursor: pointer;" Class="ma-3" Elevation="3" Dense="true">
+                    <Columns>
+                        <PropertyColumn Property="x => x.IpAddress" Title="IP" role="button"/>
+                        <PropertyColumn Property="x => x.MacAddress" Title="MAC" role="button"/>
+                    </Columns>
+                </MudDataGrid>
+                <span style="color: darkgrey; font-size: 0.8rem" class="ml-3">(kliknij w wiersz żeby wpisać parametry wybranego czujnika)</span>
+            }
             @if (_listeningStopped && Sensors.Count == 0)
             {
-                <span>Nie znaleziono żadnych czujników w sieci</span>
+                <span class="align-self-center">Nie znaleziono żadnych czujników w sieci</span>
             }
-            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">
+            <MudButton ButtonType="ButtonType.Button" Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Class="mt-4">
                 Dodaj
             </MudButton>
         </MudForm>
@@ -47,19 +54,42 @@
 </MudItem>
 
 @code {
-    
     public string IpAddress { get; set; }
     public string MacAddress { get; set; }
     private List<Sensor> Sensors { get; set; } = [];
     
     private bool _listeningStopped;
-    private bool _isFormValid;
+    private MudForm _form;
 
     private async Task Submit()
     {
-        if (_isFormValid)
+        if (_form.IsValid)
         {
-            // TODO if ip empty, check for mac in the fetched devices and incoming traffic if doesnt exist in devices
+            Sensor sensor;
+            // if the form is submitted without IP address, only with MAC
+            if (IpAddress == string.Empty)
+            {
+                // find the sensor with this MAC among the sensors found in the network
+                sensor = Sensors.First(x => x.MacAddress == MacAddress.Trim());
+            }
+            else
+            {
+                sensor = Sensors.First(x => x.IpAddress == IpAddress.Trim());
+            }
+
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var sensorInDb = await dbContext.Sensors.FirstOrDefaultAsync(x => x.IpAddress == sensor.IpAddress);
+            if (sensorInDb is not null)
+            {
+                var sensorId = sensorInDb.SensorId;
+                NavigationManager.NavigateTo($"Device/{sensorId}");
+            }
+            else
+            {
+                dbContext.Sensors.Add(sensor);
+                await dbContext.SaveChangesAsync();
+                NavigationManager.NavigateTo($"Device/{sensor.SensorId}", true);
+            }
         }
     }
 
