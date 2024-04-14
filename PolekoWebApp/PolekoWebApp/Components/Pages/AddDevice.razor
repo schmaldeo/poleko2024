@@ -1,21 +1,21 @@
 ﻿@rendermode InteractiveServer
 @page "/Device/Add"
-@layout MainLayout
 @attribute [Authorize(Roles="SuperAdmin, Admin")]
 
+@implements IDisposable
 @using System.Net.Sockets
 @using System.Text
 @using System.Text.Json;
 @using System.Text.RegularExpressions
 @using Microsoft.EntityFrameworkCore
-@using PolekoWebApp.Components.Layout
 @using PolekoWebApp.Data;
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 @inject NavigationManager NavigationManager
+@inject IDialogService DialogService
 
-@* TODO fix the socket issue *@
 <PageTitle>Dodaj nowe czujniki</PageTitle>
 
+<MudDialogProvider />
 <MudItem sm="5" Class="ma-auto">
     <MudPaper Class="pa-4">
         <h3>Dodaj czujnik</h3>
@@ -54,55 +54,126 @@
 </MudItem>
 
 @code {
-    public string IpAddress { get; set; }
-    public string MacAddress { get; set; }
+    public string? IpAddress { get; set; }
+    public string? MacAddress { get; set; }
     private List<Sensor> Sensors { get; set; } = [];
-    
+
+    private UdpClient _udpClient = new(5506);
     private bool _listeningStopped;
     private MudForm _form;
 
+    private bool TryGetSensorFromDb(ApplicationDbContext dbContext, string? ip, string? mac, out Sensor sensor)
+    {
+        Sensor? sensorInDb = null;
+        if (!string.IsNullOrWhiteSpace(ip) && !string.IsNullOrWhiteSpace(mac))
+        {
+            sensorInDb = dbContext.Sensors.FirstOrDefault(x => x.IpAddress == IpAddress || x.MacAddress == MacAddress);
+        } 
+        else if (string.IsNullOrWhiteSpace(ip) && !string.IsNullOrWhiteSpace(mac))
+        {
+            sensorInDb = dbContext.Sensors.FirstOrDefault(x => x.MacAddress == MacAddress);
+        }
+        else if (!string.IsNullOrWhiteSpace(ip) && string.IsNullOrWhiteSpace(mac))
+        {
+            sensorInDb = dbContext.Sensors.FirstOrDefault(x => x.IpAddress == IpAddress);
+        }
+        if (sensorInDb is null)
+        {
+            sensor = new Sensor();
+            return false;
+        }
+        sensor = sensorInDb;
+        return true;
+    }
+
+    private async Task<int> AddSensorToDb(ApplicationDbContext dbContext, Sensor sensor)
+    {
+        dbContext.Sensors.Add(sensor);
+        await dbContext.SaveChangesAsync();
+        return sensor.SensorId;
+    }
+    
+    private async Task<int> AddSensorToDb(ApplicationDbContext dbContext, string? ip, string? mac)
+    {
+        var sensor = new Sensor
+        {
+            IpAddress = ip,
+            MacAddress = mac
+        };
+        dbContext.Sensors.Add(sensor);
+        await dbContext.SaveChangesAsync();
+        return sensor.SensorId;
+    }
+
+    private void NavigateToSensor(int sensorId, bool forceLoad = false)
+    {
+        NavigationManager.NavigateTo($"Device/{sensorId}", forceLoad);
+    }
+    
     private async Task Submit()
     {
-        if (_form.IsValid)
+        var isIpEmpty = string.IsNullOrWhiteSpace(IpAddress);
+        var isMacEmpty = string.IsNullOrWhiteSpace(MacAddress);
+        if (_form.IsValid && (!isIpEmpty || !isMacEmpty))
         {
-            Sensor sensor;
+            Sensor? sensor = null;
             // if the form is submitted without IP address, only with MAC
-            if (IpAddress == string.Empty)
+            if (isIpEmpty)
             {
                 // find the sensor with this MAC among the sensors found in the network
-                sensor = Sensors.First(x => x.MacAddress == MacAddress.Trim());
+                sensor = Sensors.FirstOrDefault(x => x.MacAddress == MacAddress!.Trim());
+            }
+            if (!isIpEmpty)
+            {
+                sensor = Sensors.FirstOrDefault(x => x.IpAddress == IpAddress!.Trim());
+            }
+            
+            // if the parameters entered don't match any of the sensors detected in the network
+            if (sensor is null)
+            {
+                var dialog = await DialogService.ShowAsync<AreYouSureDialog>("Błąd");
+                var result = await dialog.Result;
+                if (!result.Canceled)
+                {
+                    await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+                    if (TryGetSensorFromDb(dbContext, IpAddress, MacAddress, out var dbSensor))
+                    {
+                        NavigateToSensor(dbSensor.SensorId);
+                    }
+                    else
+                    {
+                        var id = await AddSensorToDb(dbContext, IpAddress, MacAddress);
+                        NavigateToSensor(id, true);
+                    }
+                }
             }
             else
             {
-                sensor = Sensors.First(x => x.IpAddress == IpAddress.Trim());
+                await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+                if (TryGetSensorFromDb(dbContext, sensor.IpAddress, sensor.MacAddress, out var dbSensor))
+                {
+                    NavigateToSensor(dbSensor.SensorId);
+                }
+                else
+                {
+                    var id = await AddSensorToDb(dbContext, sensor);
+                    NavigateToSensor(id, true);
+                }
             }
 
-            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-            var sensorInDb = await dbContext.Sensors.FirstOrDefaultAsync(x => x.IpAddress == sensor.IpAddress);
-            if (sensorInDb is not null)
-            {
-                var sensorId = sensorInDb.SensorId;
-                NavigationManager.NavigateTo($"Device/{sensorId}");
-            }
-            else
-            {
-                dbContext.Sensors.Add(sensor);
-                await dbContext.SaveChangesAsync();
-                NavigationManager.NavigateTo($"Device/{sensor.SensorId}", true);
-            }
         }
     }
 
     private async Task ListenForDevices()
     {
-        var udpClient = new UdpClient(5506);
         var cancellationTokenSource = new CancellationTokenSource();
         cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(5));
         try
         {
             while (!cancellationTokenSource.Token.IsCancellationRequested)
             {
-                var result = await udpClient.ReceiveAsync(cancellationTokenSource.Token);
+                var result = await _udpClient.ReceiveAsync(cancellationTokenSource.Token);
                 var resultStr = Encoding.UTF8.GetString(result.Buffer);
                 var device = JsonSerializer.Deserialize<Sensor>(resultStr)!;
                 if (!Sensors.Contains(device))
@@ -118,7 +189,7 @@
         }
         finally
         {
-            udpClient.Close();
+            _udpClient.Close();
             _listeningStopped = true;
             StateHasChanged();
         }
@@ -159,5 +230,10 @@
             await ListenForDevices();
         }
         await base.OnAfterRenderAsync(firstRender);
+    }
+
+    public void Dispose()
+    {
+        _udpClient.Close();
     }
 }
