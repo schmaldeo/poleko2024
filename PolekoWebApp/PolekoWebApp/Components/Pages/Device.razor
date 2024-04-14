@@ -1,18 +1,22 @@
-﻿@page "/device/{id?}"
+﻿@page "/device/{id}"
 @attribute [Authorize]
 
 @using PolekoWebApp.Data
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 
-@* device ip *@
-<PageTitle>@(Id ?? "Devices")</PageTitle>
-<h3>Device</h3>
+<PageTitle>@(Sensor is null ? "Błąd" : $"{Sensor.IpAddress ?? Sensor.MacAddress}")</PageTitle>
 
-@Id
 @if (Sensor is null)
 {
-    <span>Ładowanie...</span>
+    @if (Error)
+    {
+        <h1>Czujnik o podanym ID nie istnieje</h1>
+    }
+    else
+    {
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true"/>
+    }
 }
 else
 {
@@ -24,13 +28,21 @@ else
     [Parameter]
     public string? Id { get; set; }
     
-    public Sensor? Sensor { get; set; }
+    private bool Error { get; set; }
+    
+    private Sensor? Sensor { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        Sensor = await dbContext.Sensors.Where(x => x.SensorId.ToString() == Id).FirstAsync();
+        try
+        {
+            Sensor = await dbContext.Sensors.Where(x => x.SensorId.ToString() == Id).FirstAsync();
+        }
+        catch (InvalidOperationException)
+        {
+            Error = true;
+        }
         await base.OnInitializedAsync();
     }
-
 }
