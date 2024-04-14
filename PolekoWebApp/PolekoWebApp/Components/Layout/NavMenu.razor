@@ -9,7 +9,6 @@
 
 <MudNavMenu Class="d-flex flex-column" Style="height: 100%;">
     <MudNavLink Href="/" Match="NavLinkMatch.All">Strona główna</MudNavLink>
-    @* TODO find out why spacer doesnt work *@
     <AuthorizeView>
         <Authorized>
                 @if (Sensors is null)
@@ -20,7 +19,7 @@
                 {
                     @if (Sensors.Length > 0)
                     {
-                        <MudNavGroup Title="Devices" Expanded="true">
+                        <MudNavGroup Title="Czujniki" Expanded="true">
                             @foreach (var sensor in Sensors)
                             {
                                 <MudNavLink Href="@($"Device/{sensor.SensorId}")">
@@ -30,7 +29,7 @@
                         </MudNavGroup>
                     }
                 }
-            <MudNavLink>Add new device</MudNavLink>
+            <MudNavLink Href="Device/Add">Dodaj nowy czujnik</MudNavLink>
             @* border style to place the divider on the bottom just above the account settings *@
             <MudDivider Style="border-style: none none solid none" />
             <MudNavLink Href="Account/Manage">@context.User.Identity?.Name</MudNavLink>

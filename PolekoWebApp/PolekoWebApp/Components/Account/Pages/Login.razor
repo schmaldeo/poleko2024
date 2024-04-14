@@ -4,14 +4,13 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using PolekoWebApp.Data
-@using MudBlazor
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Log in</PageTitle>
+<PageTitle>Logowanie</PageTitle>
 
 <MudItem sm="5" Class="ma-auto">
     <MudPaper Class="pa-4">
@@ -91,5 +90,4 @@
 
         [Display(Name = "Remember me?")] public bool RememberMe { get; set; }
     }
-
 }
