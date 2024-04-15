@@ -8,6 +8,7 @@
 @using System.Text.Json;
 @using System.Text.RegularExpressions
 @using Microsoft.EntityFrameworkCore
+@using PolekoWebApp.Components.Dialogs
 @using PolekoWebApp.Data;
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 @inject NavigationManager NavigationManager
@@ -107,6 +108,7 @@
 
     private void NavigateToSensor(int sensorId, bool forceLoad = false)
     {
+        _udpClient.Dispose();
         NavigationManager.NavigateTo($"Device/{sensorId}", forceLoad);
     }
     
@@ -131,7 +133,7 @@
             // if the parameters entered don't match any of the sensors detected in the network
             if (sensor is null)
             {
-                var dialog = await DialogService.ShowAsync<AreYouSureDialog>("Błąd");
+                var dialog = await DialogService.ShowAsync<AreYouSureDialog>();
                 var result = await dialog.Result;
                 if (!result.Canceled)
                 {
