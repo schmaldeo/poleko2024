@@ -1,36 +1,84 @@
-﻿@page "/device/{id}"
+﻿@rendermode InteractiveServer
+@page "/device/{id}"
 @attribute [Authorize]
 
 @using PolekoWebApp.Data
 @using Microsoft.EntityFrameworkCore
+@using System.Net.Sockets
+@using System.Text
+@using System.Net
+@using System.Text.Json
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
+@inject ILogger<Device> Logger
 
 <PageTitle>@(Sensor is null ? "Błąd" : $"{Sensor.IpAddress ?? Sensor.MacAddress}")</PageTitle>
 
-@if (Sensor is null)
-{
-    @if (Error)
-    {
-        <h1>Czujnik o podanym ID nie istnieje</h1>
-    }
-    else
-    {
-        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true"/>
-    }
-}
-else
-{
-    <span>@Sensor.IpAddress</span>
-    <span>@Sensor.MacAddress</span>
-}
+<MudItem sm="5" Class="ma-auto">
+    <MudPaper Class="pa-4">
+        @if (Sensor is null)
+        {
+            @if (Error)
+            {
+                <h1>Czujnik o podanym ID nie istnieje</h1>
+            }
+            else
+            {
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true"/>
+            }
+        }
+        else
+        {
+            <h2 style="text-align: center;" class="mb-3">@(Sensor.IpAddress ?? Sensor.MacAddress)</h2>
+            <MudGrid Justify="Justify.Center" Spacing="4">
+                <MudItem>
+                    @* TODO add change interval button with authorizeview *@
+                    <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
+                        <h3>Temperatura</h3>
+                        <span style="font-size: 1.5rem">@Readings.Temperature</span>
+                    </MudPaper>
+                </MudItem>
+                <MudItem>
+                    <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
+                        <h3>Wilgotność</h3>
+                        <span style="font-size: 1.5rem">@Readings.Humidity</span>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        }
+    </MudPaper>
+</MudItem>
+
 
 @code {
     [Parameter]
     public string? Id { get; set; }
-    
+
     private bool Error { get; set; }
-    
     private Sensor? Sensor { get; set; }
+    private SensorData Readings { get; set; } = new() { Temperature = 0, Humidity = 0, Rssi = 0 };
+
+    private async Task RunTcpClient()
+    {
+        Logger.LogInformation("Tcp client on");
+        var client = new TcpClient();
+        await client.ConnectAsync(IPAddress.Parse(Sensor.IpAddress), 5505);
+        var buffer = new byte[1024];
+        while (true)
+        {
+            var bytesRead = await client.GetStream().ReadAsync(buffer, 0, buffer.Length);
+            if (bytesRead == 0)
+            {
+                break;
+            }
+
+            var data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+            
+            Readings = JsonSerializer.Deserialize<SensorData>(data) 
+                       ?? new SensorData { Temperature = 0, Humidity = 0, Rssi = 0 };
+            StateHasChanged();
+        }
+        client.Close();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -45,4 +93,17 @@ else
         }
         await base.OnInitializedAsync();
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (!Error)
+            {
+                await RunTcpClient();
+            }
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
 }
