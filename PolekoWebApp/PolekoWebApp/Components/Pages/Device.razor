@@ -8,13 +8,18 @@
 @using System.Text
 @using System.Net
 @using System.Text.Json
+@using PolekoWebApp.Components.Dialogs
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 @inject ILogger<Device> Logger
+@inject IDialogService DialogService
+@implements IDisposable
 
+@* TODO sensor settings: interval, connect and fetch when not actively monitoring, is dhcp (in which case only have MAC stored in the db and on each connect get its new IP)? *@
+
+<MudDialogProvider />
 <PageTitle>@(Sensor is null ? "Błąd" : $"{Sensor.IpAddress ?? Sensor.MacAddress}")</PageTitle>
 
 <MudItem sm="5" Class="ma-auto">
-    <MudPaper Class="pa-4">
         @if (Sensor is null)
         {
             @if (Error)
@@ -23,29 +28,50 @@
             }
             else
             {
-                <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true"/>
+                <span>Ładowanie...</span>
+                <br/>
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" Class="ma-auto" Indeterminate="true"/>
             }
         }
         else
         {
-            <h2 style="text-align: center;" class="mb-3">@(Sensor.IpAddress ?? Sensor.MacAddress)</h2>
-            <MudGrid Justify="Justify.Center" Spacing="4">
-                <MudItem>
-                    @* TODO add change interval button with authorizeview *@
-                    <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
-                        <h3>Temperatura</h3>
-                        <span style="font-size: 1.5rem">@Readings.Temperature</span>
-                    </MudPaper>
-                </MudItem>
-                <MudItem>
-                    <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
-                        <h3>Wilgotność</h3>
-                        <span style="font-size: 1.5rem">@Readings.Humidity</span>
-                    </MudPaper>
-                </MudItem>
-            </MudGrid>
+            <h2 style="text-align: center" class="ma-3">@(Sensor.IpAddress ?? Sensor.MacAddress)</h2>
+            <MudPaper Class="pa-4">
+                <MudGrid Justify="Justify.Center" Spacing="4">
+                    <MudItem xs="12" Class="d-flex justify-end">
+                        <MudIconButton Icon="@Icons.Material.Filled.Settings" aria-label="settings"
+                                       OnClick="OpenSettings"/>
+                        @if (!_fetching)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Large" 
+                                           Color="Color.Tertiary"
+                                           aria-label="start fetching" 
+                                           OnClick="StartTcpClient" />
+                        }
+                        else
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Large" 
+                                           Color="Color.Error"
+                                           aria-label="stop fetching"
+                                           OnClick="StopTcpClient" />
+                        }
+                    </MudItem>
+                    <MudItem>
+                        @* TODO add change interval button with authorizeview *@
+                        <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
+                            <h3>Temperatura</h3>
+                            <span style="font-size: 1.5rem">@Readings.Temperature.ToString("0.00")</span>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem>
+                        <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
+                            <h3>Wilgotność</h3>
+                            <span style="font-size: 1.5rem">@Readings.Humidity.ToString("0.00")</span>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
         }
-    </MudPaper>
 </MudItem>
 
 
@@ -56,16 +82,20 @@
     private bool Error { get; set; }
     private Sensor? Sensor { get; set; }
     private SensorData Readings { get; set; } = new() { Temperature = 0, Humidity = 0, Rssi = 0 };
+    private TcpClient? _tcpClient;
+    private bool _fetching;
+    private CancellationTokenSource _cancellationTokenSource = new();
 
-    private async Task RunTcpClient()
+    private async Task RunTcpClient(CancellationToken token)
     {
-        Logger.LogInformation("Tcp client on");
-        var client = new TcpClient();
-        await client.ConnectAsync(IPAddress.Parse(Sensor.IpAddress), 5505);
+        _fetching = true;
+        StateHasChanged();
+        _tcpClient = new TcpClient();
+        await _tcpClient.ConnectAsync(IPAddress.Parse(Sensor.IpAddress), 5505, token);
         var buffer = new byte[1024];
         while (true)
         {
-            var bytesRead = await client.GetStream().ReadAsync(buffer, 0, buffer.Length);
+            var bytesRead = await _tcpClient.GetStream().ReadAsync(buffer, 0, buffer.Length, token);
             if (bytesRead == 0)
             {
                 break;
@@ -76,8 +106,53 @@
             Readings = JsonSerializer.Deserialize<SensorData>(data) 
                        ?? new SensorData { Temperature = 0, Humidity = 0, Rssi = 0 };
             StateHasChanged();
+            if (token.IsCancellationRequested)
+            {
+                break;
+            }
         }
-        client.Close();
+        _fetching = false;
+    }
+
+    private async Task StartTcpClient()
+    {
+        // reset the token source to be able to restart fetching multiple times
+        _cancellationTokenSource = new CancellationTokenSource();
+        await RunTcpClient(_cancellationTokenSource.Token);
+    }
+
+    private void StopTcpClient()
+    {
+        _cancellationTokenSource.Cancel();
+        _tcpClient?.Close();
+        _fetching = false;
+        StateHasChanged();
+    }
+
+    private async Task OpenSettings()
+    {
+        var parameters = new DialogParameters<DeviceSettingsDialog> { { x => x.Sensor, Sensor } };
+        var dialog = await DialogService.ShowAsync<DeviceSettingsDialog>("Ustawienia", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var outSensor = (Sensor)result.Data;
+            await SaveChangesToDb(outSensor);
+            Sensor = outSensor;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveChangesToDb(Sensor sensor)
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+        var sensorInDb = await dbContext.Sensors.FindAsync(Sensor!.SensorId);
+        if (sensorInDb is null) return;
+        sensorInDb.FetchInterval = sensor.FetchInterval;
+        sensorInDb.UsesDhcp = sensor.UsesDhcp;
+        sensorInDb.OnlyFetchIfMonitoring = sensor.OnlyFetchIfMonitoring;
+        await dbContext.SaveChangesAsync();
     }
 
     protected override async Task OnInitializedAsync()
@@ -94,16 +169,10 @@
         await base.OnInitializedAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    public void Dispose()
     {
-        if (firstRender)
-        {
-            if (!Error)
-            {
-                await RunTcpClient();
-            }
-        }
-        await base.OnAfterRenderAsync(firstRender);
+        _cancellationTokenSource.Cancel();
+        _tcpClient?.Close();
     }
 
 }

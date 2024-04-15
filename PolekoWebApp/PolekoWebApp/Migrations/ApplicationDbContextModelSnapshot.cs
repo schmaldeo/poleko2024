@@ -227,10 +227,18 @@ namespace PolekoWebApp.Migrations
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("SensorId"));
 
                     b.Property<string>("IpAddress")
-                        .HasColumnType("longtext");
+                        .HasColumnType("longtext")
+                        .HasAnnotation("Relational:JsonPropertyName", "ip");
 
                     b.Property<string>("MacAddress")
-                        .HasColumnType("longtext");
+                        .HasColumnType("longtext")
+                        .HasAnnotation("Relational:JsonPropertyName", "mac");
+
+                    b.Property<bool>("OnlyFetchIfMonitoring")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("UsesDhcp")
+                        .HasColumnType("tinyint(1)");
 
                     b.HasKey("SensorId");
 

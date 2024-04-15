@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -12,15 +13,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
 public class Sensor
 {
-    [JsonIgnore]
-    public int SensorId { get; set; }
+    [JsonIgnore] public int SensorId { get; set; }
+    [JsonPropertyName("ip")] public string? IpAddress { get; set; }
+    [JsonPropertyName("mac")] public string? MacAddress { get; set; }
+    [JsonIgnore] public bool UsesDhcp { get; set; }
+    [JsonIgnore] public bool OnlyFetchIfMonitoring { get; set; }
+    [NotMapped] public int FetchInterval { get; set; }
     
-    [JsonPropertyName("ip")]
-    public string? IpAddress { get; set; }
-    
-    [JsonPropertyName("mac")]
-    public string? MacAddress { get; set; }
-
     public static bool operator ==(Sensor a, Sensor b)
     {
         return a.IpAddress == b.IpAddress && a.MacAddress == b.MacAddress;

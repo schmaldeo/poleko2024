@@ -1,0 +1,56 @@
+﻿@using PolekoWebApp.Data
+@using System.Text.Json
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-3 mb-n1"/>
+            Ustawienia
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudItem>
+            Częstotliwość odczytów
+            <MudNumericField T="int" @bind-Value="_sensorCopy.FetchInterval"/>
+        </MudItem>
+        <MudItem>
+            DHCP
+            <MudCheckBox Color="Color.Primary" @bind-Value="_sensorCopy.UsesDhcp"/>
+        </MudItem>
+        <MudItem>
+            Zapisuj dane tylko gdy czujnik jest monitorowany
+            <MudCheckBox Color="Color.Primary" @bind-Value="_sensorCopy.OnlyFetchIfMonitoring"/>
+        </MudItem>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Anuluj</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Zapisz</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public Sensor Sensor { get; set; } = null!;
+    private Sensor _sensorCopy = null!;
+
+    void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(_sensorCopy));
+    }
+        
+    void Cancel() => MudDialog.Cancel();
+
+    protected override void OnInitialized()
+    {
+        _sensorCopy = new Sensor
+        {
+            FetchInterval = Sensor.FetchInterval,
+            IpAddress = Sensor.IpAddress,
+            MacAddress = Sensor.MacAddress,
+            OnlyFetchIfMonitoring = Sensor.OnlyFetchIfMonitoring,
+            SensorId = Sensor.SensorId,
+            UsesDhcp = Sensor.UsesDhcp
+        };
+        base.OnInitialized();
+    }
+}
