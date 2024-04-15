@@ -3,6 +3,7 @@
 #include <ESP32TimerInterrupt.h>
 #include <ArduinoJson.h>
 #include <driver/timer.h>
+#include <WiFi.h>
 
 volatile bool timerFlag = false;
 TCPServer* TCPServer::instance = nullptr;
@@ -84,10 +85,16 @@ void TCPServer::loop() {
 
 
 bool TCPServer::sendDataToClient() {
-    auto str = instance->sensor.getJsonString();
+    auto sensorData = instance->sensor.getSensorData();
+    JsonDocument doc;
+    doc["humidity"] = sensorData.first;
+    doc["temperature"] = sensorData.second;
+    doc["rssi"] = WiFi.RSSI();
+    String serialized;
+    serializeJson(doc, serialized);
     for (auto client : instance->clients) {
         if (client->connected()) {
-            client->add(str.c_str(), strlen(str.c_str()));
+            client->add(serialized.c_str(), strlen(serialized.c_str()));
             client->send();
         }
     }
@@ -107,6 +114,8 @@ void TCPServer::handleData(void *arg, AsyncClient *client, void *data, size_t le
     //the check for existence of a key in the document is the more important part
     float interval = doc["interval"];
     if (interval) {
+        // need to use the esp-idf functions rather than the ones from the external library because those 
+        // don't work properly when you try to change the interval
         timer_set_counter_value(TIMER_GROUP_0, TIMER_1, 0);
         timer_set_alarm_value(TIMER_GROUP_0, TIMER_1, interval * 1000000);
         timer_start(TIMER_GROUP_0, TIMER_1);

@@ -54,7 +54,6 @@ void EspUDPServer::sendPacket() {
     JsonDocument doc;
     doc["ip"] = WiFi.localIP();
     doc["mac"] = WiFi.macAddress();
-    doc["signal_strength"] = WiFi.RSSI();
     String interfaceInfo;
     serializeJson(doc, interfaceInfo);
     udp.printf(interfaceInfo.c_str());
