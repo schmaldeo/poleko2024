@@ -1,4 +1,5 @@
 #include "HTTPServer.h"
+#include <ArduinoJson.h>
 
 HTTPServer::HTTPServer(Sensor& sensor): server(WiFiServer(80)), sensor(sensor) { }
 
@@ -45,7 +46,14 @@ void HTTPServer::loop() {
                         client.println();
 
                         // the content of the HTTP response follows the header:
-                        client.print(sensor.getJsonString());
+                        auto sensorData = sensor.getSensorData();
+                        JsonDocument doc;
+                        doc["humidity"] = sensorData.first;
+                        doc["temperature"] = sensorData.second;
+                        doc["rssi"] = WiFi.RSSI();
+                        String serialized;
+                        serializeJson(doc, serialized);
+                        client.print(serialized);
 
                         // The HTTP response ends with another blank line:
                         client.println();
