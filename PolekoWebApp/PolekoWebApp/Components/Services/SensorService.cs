@@ -8,11 +8,11 @@ namespace PolekoWebApp.Components.Services;
 
 public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFactory, ILogger<SensorService> logger) : BackgroundService
 {
+    // TODO clear all buffers on quitting
     public Sensor[] Sensors { get; private set; }
     public List<Sensor> SensorsToFetch { get; private set; }
     private UdpClient? _udpClient;
     private CancellationTokenSource _cancellationTokenSource = new();
-    private readonly object _bufferLock = new();
 
     protected override async Task ExecuteAsync(CancellationToken token)
     {
@@ -34,7 +34,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         List<Task> tasks = [];
         foreach (var sensor in SensorsToFetch)
         {
-            tasks.Add(ConnectToSensorAndAddToDb(sensor, token));
+            tasks.Add(ConnectToSensorAndAddToDb(sensor, token, 10));
         }
 
         await Task.WhenAll(tasks);
@@ -72,12 +72,13 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         return sensorsFound;
     }
 
-    private async Task ConnectToSensorAndAddToDb(Sensor sensor, CancellationToken token)
+    private async Task ConnectToSensorAndAddToDb(Sensor sensor, CancellationToken token, int bufferSize)
     {
-        sensor.TcpClient ??= new TcpClient();
-        // TODO change size
-        sensor.Buffer ??= new Buffer<SensorData>(5);
         if (sensor.IpAddress is null) return;
+
+        sensor.TcpClient ??= new TcpClient();
+
+        List<SensorData> readings = [];
         try
         {
             await sensor.TcpClient.ConnectAsync(sensor.IpAddress, 5505, token);
@@ -90,34 +91,37 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 var data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
                 var reading = JsonSerializer.Deserialize<SensorData>(data)
-                               ?? new SensorData { Temperature = 0, Humidity = 0, Rssi = 0 };
+                              ?? new SensorData { Temperature = 0, Humidity = 0, Rssi = 0 };
                 reading.Epoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                logger.LogInformation($"{reading.Temperature} {reading.Humidity} {reading.Epoch}");
-                // need a lock because theres a risk of a race condition
-                lock (_bufferLock)
-                {
-                    sensor.Buffer.Add(reading);
-                }
-
-                sensor.Buffer.BufferOverflow += async (_, _) => { await AddReadingsToDb(sensor); };
+                reading.Sensor = sensor;
+                readings.Add(reading);
+                logger.LogInformation($"{reading.Temperature} {reading.Humidity} {reading.Epoch} {reading.Sensor.Id}");
+                if (readings.Count != bufferSize) continue;
+                await AddReadingsToDb(readings);
+                readings.Clear();
             }
         }
         catch (SocketException e)
         {
             logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}\n{e.Message}");
         }
+        finally
+        {
+            await AddReadingsToDb(readings);
+            sensor.TcpClient.Dispose();
+        }
     }
 
-    private async Task AddReadingsToDb(Sensor sensor)
+    private async Task AddReadingsToDb(List<SensorData> readings)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
-        if (sensor.Buffer is null) return;
-        lock (_bufferLock)
+        foreach (var reading in readings)
         {
-            foreach (var reading in sensor.Buffer)
-            {
-                dbContext.SensorReadings.Add(reading);
-            }
+            var sensor = await dbContext.Sensors.FindAsync(reading.Sensor.Id);
+            if (sensor is null) continue;
+            reading.Sensor = sensor;
+            dbContext.SensorReadings.Add(reading);
         }
+        await dbContext.SaveChangesAsync();
     }
 }
