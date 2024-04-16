@@ -91,7 +91,7 @@
     {
         dbContext.Sensors.Add(sensor);
         await dbContext.SaveChangesAsync();
-        return sensor.SensorId;
+        return sensor.Id;
     }
     
     private async Task<int> AddSensorToDb(ApplicationDbContext dbContext, string? ip, string? mac)
@@ -103,7 +103,7 @@
         };
         dbContext.Sensors.Add(sensor);
         await dbContext.SaveChangesAsync();
-        return sensor.SensorId;
+        return sensor.Id;
     }
 
     private void NavigateToSensor(int sensorId, bool forceLoad = false)
@@ -141,7 +141,7 @@
 
                     if (TryGetSensorFromDb(dbContext, IpAddress, MacAddress, out var dbSensor))
                     {
-                        NavigateToSensor(dbSensor.SensorId);
+                        NavigateToSensor(dbSensor.Id);
                     }
                     else
                     {
@@ -155,7 +155,7 @@
                 await using var dbContext = await DbContextFactory.CreateDbContextAsync();
                 if (TryGetSensorFromDb(dbContext, sensor.IpAddress, sensor.MacAddress, out var dbSensor))
                 {
-                    NavigateToSensor(dbSensor.SensorId);
+                    NavigateToSensor(dbSensor.Id);
                 }
                 else
                 {

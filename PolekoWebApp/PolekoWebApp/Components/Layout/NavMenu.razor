@@ -22,8 +22,8 @@
                         <MudNavGroup Title="Czujniki" Expanded="true">
                             @foreach (var sensor in Sensors)
                             {
-                                <MudNavLink Href="@($"Device/{sensor.SensorId}")">
-                                    @(sensor.IpAddress ?? sensor.MacAddress ?? $"Czujnik {sensor.SensorId}")
+                                <MudNavLink Href="@($"Device/{sensor.Id}")">
+                                    @(sensor.IpAddress ?? sensor.MacAddress ?? $"Czujnik {sensor.Id}")
                                 </MudNavLink>
                             }
                         </MudNavGroup>

@@ -11,18 +11,28 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     public DbSet<Sensor> Sensors { get; set; }
     public DbSet<SensorData> SensorReadings { get; set; }
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        builder.Entity<Sensor>()
+            .HasMany(e => e.Readings)
+            .WithOne(e => e.Sensor)
+            .HasForeignKey(e => e.SensorId)
+            .HasPrincipalKey(e => e.Id);
+        builder.Entity<SensorData>()
+            .HasKey(e => new { e.Epoch, e.SensorId });
+        base.OnModelCreating(builder);
+    }
 }
 
 public class Sensor
 {
-    [JsonIgnore] public int SensorId { get; set; }
+    [JsonIgnore] public int Id { get; set; }
     [JsonPropertyName("ip")] public string? IpAddress { get; set; }
     [JsonPropertyName("mac")] public string? MacAddress { get; set; }
     [JsonIgnore] public bool UsesDhcp { get; set; }
     [JsonIgnore] public bool OnlyFetchIfMonitoring { get; set; }
     [NotMapped] public int FetchInterval { get; set; }
     [NotMapped] [JsonIgnore] public TcpClient? TcpClient { get; set; }
-    [NotMapped] [JsonIgnore] public Buffer<SensorData>? Buffer { get; set; }
     [JsonIgnore] public ICollection<SensorData> Readings { get; }
     // TODO add CurrentReading and use that in Device.razor
     

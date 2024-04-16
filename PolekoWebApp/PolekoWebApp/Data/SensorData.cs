@@ -1,10 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-using Microsoft.EntityFrameworkCore;
 
 namespace PolekoWebApp.Data;
 
-[PrimaryKey(nameof(Epoch), nameof(SensorId))]
 public class SensorData
 {
     [JsonPropertyName("humidity")] public float Humidity { get; set; }

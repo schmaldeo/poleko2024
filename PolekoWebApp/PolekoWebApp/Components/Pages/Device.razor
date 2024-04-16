@@ -147,7 +147,7 @@
     private async Task SaveChangesToDb(Sensor sensor)
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        var sensorInDb = await dbContext.Sensors.FindAsync(Sensor!.SensorId);
+        var sensorInDb = await dbContext.Sensors.FindAsync(Sensor!.Id);
         if (sensorInDb is null) return;
         sensorInDb.FetchInterval = sensor.FetchInterval;
         sensorInDb.UsesDhcp = sensor.UsesDhcp;
@@ -160,7 +160,7 @@
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         try
         {
-            Sensor = await dbContext.Sensors.Where(x => x.SensorId.ToString() == Id).FirstAsync();
+            Sensor = await dbContext.Sensors.Where(x => x.Id.ToString() == Id).FirstAsync();
         }
         catch (InvalidOperationException)
         {
