@@ -5,6 +5,7 @@ using PolekoWebApp.Components;
 using PolekoWebApp.Components.Account;
 using PolekoWebApp.Data;
 using MudBlazor.Services;
+using PolekoWebApp.Components.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,7 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+builder.Services.AddHostedService<SensorService>();
 
 builder.Services.AddAuthentication(options =>
     {

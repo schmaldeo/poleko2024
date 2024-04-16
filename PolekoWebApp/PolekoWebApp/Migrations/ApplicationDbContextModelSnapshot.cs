@@ -245,6 +245,30 @@ namespace PolekoWebApp.Migrations
                     b.ToTable("Sensors");
                 });
 
+            modelBuilder.Entity("PolekoWebApp.Data.SensorData", b =>
+                {
+                    b.Property<int>("Epoch")
+                        .HasColumnType("int")
+                        .HasAnnotation("Relational:JsonPropertyName", "epoch");
+
+                    b.Property<int>("SensorId")
+                        .HasColumnType("int");
+
+                    b.Property<float>("Humidity")
+                        .HasColumnType("float")
+                        .HasAnnotation("Relational:JsonPropertyName", "humidity");
+
+                    b.Property<float>("Temperature")
+                        .HasColumnType("float")
+                        .HasAnnotation("Relational:JsonPropertyName", "temperature");
+
+                    b.HasKey("Epoch", "SensorId");
+
+                    b.HasIndex("SensorId");
+
+                    b.ToTable("SensorReadings");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -294,6 +318,22 @@ namespace PolekoWebApp.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PolekoWebApp.Data.SensorData", b =>
+                {
+                    b.HasOne("PolekoWebApp.Data.Sensor", "Sensor")
+                        .WithMany("Readings")
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sensor");
+                });
+
+            modelBuilder.Entity("PolekoWebApp.Data.Sensor", b =>
+                {
+                    b.Navigation("Readings");
                 });
 #pragma warning restore 612, 618
         }
