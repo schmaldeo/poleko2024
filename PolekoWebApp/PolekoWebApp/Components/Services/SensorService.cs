@@ -86,7 +86,12 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             while (true)
             {
                 var bytesRead = await sensor.TcpClient.GetStream().ReadAsync(buffer, token);
-                if (bytesRead == 0 || token.IsCancellationRequested) break;
+                if (bytesRead == 0)
+                {
+                    // TODO try restart
+                    break;
+                }
+                if (token.IsCancellationRequested) break;
 
                 var data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
@@ -94,8 +99,8 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                               ?? new SensorData { Temperature = 0, Humidity = 0, Rssi = 0 };
                 reading.Epoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 reading.Sensor = sensor;
+                sensor.LastReading = reading;
                 readings.Add(reading);
-                logger.LogInformation($"{reading.Temperature} {reading.Humidity} {reading.Epoch} {reading.Sensor.Id}");
                 if (readings.Count != bufferSize) continue;
                 await AddReadingsToDb(readings);
                 readings.Clear();
@@ -109,6 +114,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         {
             await AddReadingsToDb(readings);
             sensor.TcpClient.Dispose();
+            sensor.TcpClient = null;
         }
     }
 

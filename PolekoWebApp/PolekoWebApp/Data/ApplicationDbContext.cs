@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Net.Sockets;
 using System.Text.Json.Serialization;
@@ -34,7 +35,18 @@ public class Sensor
     [NotMapped] public int FetchInterval { get; set; }
     [NotMapped] [JsonIgnore] public TcpClient? TcpClient { get; set; }
     [JsonIgnore] public ICollection<SensorData> Readings { get; }
-    // TODO add CurrentReading and use that in Device.razor
+    private SensorData? _lastReading;
+    [NotMapped] [JsonIgnore] public SensorData LastReading 
+    {
+        get => _lastReading ?? new SensorData();
+        set
+        {
+            LastReadingChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LastReading)));
+            _lastReading = value;
+        }
+    }
+    
+    public event PropertyChangedEventHandler? LastReadingChanged;
     
     public static bool operator ==(Sensor a, Sensor b)
     {

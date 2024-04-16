@@ -9,9 +9,11 @@
 @using System.Net
 @using System.Text.Json
 @using PolekoWebApp.Components.Dialogs
+@using PolekoWebApp.Components.Services
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 @inject ILogger<Device> Logger
 @inject IDialogService DialogService
+@inject SensorService SensorService
 @implements IDisposable
 
 @* TODO sensor settings: interval, connect and fetch when not actively monitoring, is dhcp (in which case only have MAC stored in the db and on each connect get its new IP)? *@
@@ -61,12 +63,14 @@
                         <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
                             <h3>Temperatura</h3>
                             <span style="font-size: 1.5rem">@Readings.Temperature.ToString("0.00")</span>
+                            <span style="font-size: 1.5rem">@Sensor.LastReading.Temperature.ToString("0.00")</span>
                         </MudPaper>
                     </MudItem>
                     <MudItem>
                         <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
                             <h3>Wilgotność</h3>
                             <span style="font-size: 1.5rem">@Readings.Humidity.ToString("0.00")</span>
+                            <span style="font-size: 1.5rem">@Sensor.LastReading.Humidity.ToString("0.00")</span>
                         </MudPaper>
                     </MudItem>
                 </MudGrid>
@@ -160,7 +164,9 @@
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         try
         {
-            Sensor = await dbContext.Sensors.Where(x => x.Id.ToString() == Id).FirstAsync();
+            Sensor = SensorService.SensorsToFetch.First(x => x.Id.ToString() == Id);
+            Sensor.LastReadingChanged += async (_, _) => { await InvokeAsync(StateHasChanged); };
+            // Sensor = await dbContext.Sensors.Where(x => x.Id.ToString() == Id).FirstAsync();
         }
         catch (InvalidOperationException)
         {
