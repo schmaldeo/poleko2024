@@ -8,14 +8,13 @@
 @using PolekoWebApp.Components.Services
 @using System.ComponentModel
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
-@inject ILogger<Device> Logger
 @inject IDialogService DialogService
 @inject SensorService SensorService
 @inject NavigationManager NavigationManager
 
 
 <MudDialogProvider />
-<PageTitle>@(Sensor is null ? "Błąd" : $"{Sensor.IpAddress ?? Sensor.MacAddress}")</PageTitle>
+<PageTitle>@(Sensor is null ? "Błąd" : $"{(Sensor.UsesDhcp ? Sensor.MacAddress : Sensor.IpAddress)}")</PageTitle>
 
 <MudItem sm="5" Class="ma-auto">
         @if (Sensor is null)
@@ -33,7 +32,7 @@
         }
         else
         {
-            <h2 style="text-align: center" class="ma-3">@(Sensor.IpAddress ?? Sensor.MacAddress)</h2>
+            <h2 style="text-align: center" class="ma-3">@(Sensor.UsesDhcp ? Sensor.MacAddress : Sensor.IpAddress)</h2>
             <MudPaper Class="pa-4">
                 <MudGrid Justify="Justify.Center" Spacing="4">
                     <MudItem xs="12" Class="d-flex justify-end">

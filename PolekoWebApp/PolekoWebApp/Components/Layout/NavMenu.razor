@@ -23,12 +23,13 @@
                             @foreach (var sensor in Sensors)
                             {
                                 <MudNavLink Href="@($"Device/{sensor.SensorId}")">
-                                    @(sensor.IpAddress ?? sensor.MacAddress ?? $"Czujnik {sensor.SensorId}")
+                                    @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
                                 </MudNavLink>
                             }
                         </MudNavGroup>
                     }
                 }
+                @* need to change context for nested AuthorizeViews to work *@
                 <AuthorizeView Roles="Admin, SuperAdmin" Context="addDevice">
                     <Authorized>
                         <MudNavLink Href="Device/Add">Dodaj nowy czujnik</MudNavLink>
