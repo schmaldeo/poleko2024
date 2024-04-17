@@ -11,8 +11,8 @@
 @inject ILogger<Device> Logger
 @inject IDialogService DialogService
 @inject SensorService SensorService
+@inject NavigationManager NavigationManager
 
-@* TODO sensor settings: interval, connect and fetch when not actively monitoring, is dhcp (in which case only have MAC stored in the db and on each connect get its new IP)? *@
 
 <MudDialogProvider />
 <PageTitle>@(Sensor is null ? "Błąd" : $"{Sensor.IpAddress ?? Sensor.MacAddress}")</PageTitle>
@@ -127,12 +127,19 @@
 
         if (!result.Canceled)
         {
-            var outSensor = (Sensor)result.Data;
-            await SaveChangesToDb(outSensor);
-            Sensor!.FetchInterval = outSensor.FetchInterval;
-            Sensor!.ManuallyStartFetch = outSensor.ManuallyStartFetch;
-            Sensor!.UsesDhcp = outSensor.UsesDhcp;
-            StateHasChanged();
+            if (result.Data is Sensor dialogSensor)
+            {
+                await SaveChangesToDb(dialogSensor);
+                Sensor!.FetchInterval = dialogSensor.FetchInterval;
+                Sensor!.ManuallyStartFetch = dialogSensor.ManuallyStartFetch;
+                Sensor!.UsesDhcp = dialogSensor.UsesDhcp;
+                StateHasChanged();
+            }
+            else
+            {
+                await SensorService.RemoveSensorFromDb(Sensor!);
+                NavigationManager.NavigateTo("/", true);
+            }
         }
     }
 

@@ -1,4 +1,6 @@
 ﻿@using PolekoWebApp.Data
+@using PolekoWebApp.Components.Services
+
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
@@ -19,6 +21,9 @@
             Manualne monitorowania
             <MudCheckBox Color="Color.Primary" @bind-Value="@_sensorCopy.ManuallyStartFetch"/>
         </MudItem>
+        <MudItem>
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Delete">Usuń urządzenie</MudButton>
+        </MudItem>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Anuluj</MudButton>
@@ -32,12 +37,17 @@
     [Parameter] public Sensor Sensor { get; set; } = null!;
     private Sensor _sensorCopy = null!;
 
-    void Submit()
+    private void Submit()
     {
         MudDialog.Close(DialogResult.Ok(_sensorCopy));
     }
         
-    void Cancel() => MudDialog.Cancel();
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Delete()
+    {
+        MudDialog.Close(DialogResult.Ok(false));
+    }
 
     protected override void OnInitialized()
     {

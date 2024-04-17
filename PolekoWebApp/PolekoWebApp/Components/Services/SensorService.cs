@@ -182,7 +182,11 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 
     public async Task RemoveSensorFromDb(Sensor sensor)
     {
-        throw new NotImplementedException();
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+        Sensors.Remove(sensor);
+        SensorsToFetch.Remove(sensor);
+        dbContext.Sensors.Remove(sensor);
+        await dbContext.SaveChangesAsync();
     }
 
     private async Task AddReadingsToDb(List<SensorData> readings)
