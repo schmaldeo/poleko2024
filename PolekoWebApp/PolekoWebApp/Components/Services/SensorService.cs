@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -51,6 +52,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
     private async Task<List<Sensor>> GetSensorsFromUdp()
     {
         _udpClient = new UdpClient();
+        _udpClient.Client.Bind(new IPEndPoint(IPAddress.Any, 5506));
         _cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(5));
         List<Sensor> sensorsFound = [];
         try
@@ -65,6 +67,9 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                     sensorsFound.Add(device);
                 }
             }
+        }
+        catch (OperationCanceledException)
+        {
         }
         finally
         {
@@ -116,17 +121,19 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         }
         catch (SocketException e)
         {
-            // TODO try restart
+            OnDeviceDisconnected(sensor.IpAddress ?? sensor.MacAddress ?? "");
             logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}\n{e.Message}");
             sensor.Fetching = false;
         }
         catch (ObjectDisposedException)
         {
+            OnDeviceDisconnected(sensor.IpAddress ?? sensor.MacAddress ?? "");
             logger.LogInformation($"Fetching stopped on sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}");
             sensor.Fetching = false;
         }
         catch (InvalidOperationException)
         {
+            OnDeviceDisconnected(sensor.IpAddress ?? sensor.MacAddress ?? "");
             logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}");
             sensor.Fetching = false;
         }
@@ -141,7 +148,6 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 
     public async Task ConnectToSensor(Sensor sensor, CancellationToken token)
     {
-        OnDeviceDisconnected(sensor.IpAddress ?? sensor.MacAddress ?? "");
         // if dhcp
         //  if ip is null get ip from udp
         //  if ip is not null connect
@@ -179,7 +185,8 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         var sensor = new Sensor
         {
             IpAddress = ip,
-            MacAddress = mac
+            MacAddress = mac,
+            UsesDhcp = ip is null
         };
         dbContext.Sensors.Add(sensor);
         await dbContext.SaveChangesAsync();
@@ -219,5 +226,5 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 
 public class DisconnectedEventArgs : EventArgs
 {
-    public string IpAddress { get; init; }
+    public string? IpAddress { get; init; }
 }
