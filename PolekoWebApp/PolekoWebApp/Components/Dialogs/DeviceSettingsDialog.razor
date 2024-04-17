@@ -1,5 +1,4 @@
 ﻿@using PolekoWebApp.Data
-@using PolekoWebApp.Components.Services
 
 <MudDialog>
     <TitleContent>
@@ -13,13 +12,13 @@
             Częstotliwość odczytów
             <MudNumericField T="int" @bind-Value="_sensorCopy.FetchInterval"/>
         </MudItem>
-        <MudItem>
+        <MudItem Class="d-flex flex-row align-center mt-2">
+            <MudCheckBox Color="Color.Primary" @bind-Value="_sensorCopy.UsesDhcp" Style="margin-left: -1rem;"/>
             DHCP
-            <MudCheckBox Color="Color.Primary" @bind-Value="_sensorCopy.UsesDhcp"/>
         </MudItem>
-        <MudItem>
-            Manualne monitorowania
-            <MudCheckBox Color="Color.Primary" @bind-Value="@_sensorCopy.ManuallyStartFetch"/>
+        <MudItem Class="d-flex flex-row align-center mb-2">
+            <MudCheckBox Color="Color.Primary" @bind-Value="_sensorCopy.ManuallyStartFetch" Style="margin-left: -1rem;"/>
+            Manualne monitorowanie
         </MudItem>
         <MudItem>
             <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Delete">Usuń urządzenie</MudButton>
