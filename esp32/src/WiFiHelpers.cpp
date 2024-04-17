@@ -36,7 +36,7 @@ void setupIpSetup() {
     wm.addParameter(&ipParam);
     wm.addParameter(&maskParam);
     wm.addParameter(&gatewayParam);
-    std::vector<const char*> menu = {"wifi","param","info","restart","exit"};
+    std::vector<const char *> menu = {"wifi", "param", "info", "restart", "exit"};
     wm.setMenu(menu);
     bool connectedOrChangedWiFi = wm.startConfigPortal();
 
@@ -53,14 +53,15 @@ void setupIpSetup() {
     IPAddress paramIp = ipParam.getValue();
     IPAddress paramGateway = gatewayParam.getValue();
     IPAddress paramMask = maskParam.getValue();
-    if ((prefSettings.ip != paramIp) || (prefSettings.defaultGateway != paramGateway) || (prefSettings.subnetMask != paramMask)) {
+    if ((prefSettings.ip != paramIp) || (prefSettings.defaultGateway != paramGateway) ||
+        (prefSettings.subnetMask != paramMask)) {
         auto settings = IpSettings{paramIp, paramMask, paramGateway};
         saveIpSettings(preferences, settings);
         WiFi.config(paramIp, paramGateway, paramMask);
     }
 }
 
-IpSettings getSavedIpSettings(Preferences& preferences) {
+IpSettings getSavedIpSettings(Preferences &preferences) {
     preferences.begin("ipSettings");
     auto prefIp = preferences.getString("ip", "");
     IPAddress ip;
@@ -74,7 +75,7 @@ IpSettings getSavedIpSettings(Preferences& preferences) {
     return IpSettings{ip, mask, gateway};
 }
 
-void saveIpSettings(Preferences& preferences, IpSettings& settings) {
+void saveIpSettings(Preferences &preferences, IpSettings &settings) {
     preferences.begin("ipSettings");
     preferences.putString("ip", settings.ip.toString());
     preferences.putString("mask", settings.subnetMask.toString());
@@ -82,7 +83,7 @@ void saveIpSettings(Preferences& preferences, IpSettings& settings) {
 }
 
 IPAddressParameter::IPAddressParameter(const char *id, const char *placeholder, IPAddress address)
-    : WiFiManagerParameter("") {
+        : WiFiManagerParameter("") {
     init(id, placeholder, address.toString().c_str(), 16, "", WFM_LABEL_BEFORE);
 }
 

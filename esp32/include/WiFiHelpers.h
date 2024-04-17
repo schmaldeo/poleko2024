@@ -5,7 +5,8 @@
 
 #pragma once
 
-constexpr byte LED_PIN = 2;
+constexpr byte
+LED_PIN = 2;
 
 struct IpSettings {
     IPAddress ip;
@@ -18,10 +19,14 @@ public:
     IPAddressParameter(const char *id, const char *placeholder, IPAddress address);
 
     IPAddress getValue();
+
     bool isValid();
 };
 
 void setupWiFi();
+
 void setupIpSetup();
-IpSettings getSavedIpSettings(Preferences& preferences);
-void saveIpSettings(Preferences& preferences, IpSettings& settings);
+
+IpSettings getSavedIpSettings(Preferences &preferences);
+
+void saveIpSettings(Preferences &preferences, IpSettings &settings);

@@ -8,7 +8,8 @@
 #include <WiFi.h>
 #include <Preferences.h>
 
-constexpr byte BOOT_BUTTON_PIN = 0;
+constexpr byte
+BOOT_BUTTON_PIN = 0;
 
 Sensor sensor(2, 16, 17);
 TCPServer tcpServer(sensor);
@@ -18,7 +19,9 @@ EspUDPServer udpServer;
 bool prevButtonState = HIGH;
 
 void setupSerial();
+
 void startServices();
+
 void stopServices();
 
 void setup() {

@@ -1,7 +1,7 @@
 #include "HTTPServer.h"
 #include <ArduinoJson.h>
 
-HTTPServer::HTTPServer(Sensor& sensor): server(WiFiServer(80)), sensor(sensor) { }
+HTTPServer::HTTPServer(Sensor &sensor) : server(WiFiServer(80)), sensor(sensor) {}
 
 void HTTPServer::setup() {
     if (started) {

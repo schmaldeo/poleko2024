@@ -54,15 +54,15 @@ String Sensor::readSensorData() {
 /// @brief Processes raw String returned by the sensor
 /// @param sensorData String returned by the sensor
 /// @return std::pair where the first item is the humidity and the second item is the temperature
-std::pair<float, float> Sensor::processSensorData(String& sensorData) {
+std::pair<float, float> Sensor::processSensorData(String &sensorData) {
     // length of the string is constant, doing a check to avoid processing empty strings that sometimes get passed
     if (sensorData.length() != 94) {
         return std::make_pair(0.0f, 0.0f);
     }
-    char* data = new char[sensorData.length() + 1];
+    char *data = new char[sensorData.length() + 1];
     strcpy(data, sensorData.c_str());
 
-    char* split = strtok(data, ";");
+    char *split = strtok(data, ";");
 
     split = strtok(NULL, ";");
 

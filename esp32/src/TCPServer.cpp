@@ -6,19 +6,16 @@
 #include <WiFi.h>
 
 volatile bool timerFlag = false;
-TCPServer* TCPServer::instance = nullptr;
+TCPServer *TCPServer::instance = nullptr;
 
-TCPServer::TCPServer(Sensor& sensor, unsigned short port) : 
-server(new AsyncServer(port))
-, sensor(sensor)
-, timer(ESP32Timer(1))
-, port(port) {
+TCPServer::TCPServer(Sensor &sensor, unsigned short port) :
+        server(new AsyncServer(port)), sensor(sensor), timer(ESP32Timer(1)), port(port) {
     // TODO implement singleton
     instance = this;
 }
 
 TCPServer::~TCPServer() {
-    for (auto client : clients) {
+    for (auto client: clients) {
         delete client;
     }
 }
@@ -42,7 +39,7 @@ void TCPServer::stop() {
         return;
     }
     server = nullptr;
-    for (auto client : clients) {
+    for (auto client: clients) {
         delete client;
     }
     clients.clear();
@@ -92,7 +89,7 @@ bool TCPServer::sendDataToClient() {
     doc["rssi"] = WiFi.RSSI();
     String serialized;
     serializeJson(doc, serialized);
-    for (auto client : instance->clients) {
+    for (auto client: instance->clients) {
         if (client->connected()) {
             client->add(serialized.c_str(), strlen(serialized.c_str()));
             client->send();
@@ -107,7 +104,7 @@ bool TCPServer::timerHandle(void *_) {
 }
 
 void TCPServer::handleData(void *arg, AsyncClient *client, void *data, size_t len) {
-    auto input = static_cast<char*>(data);
+    auto input = static_cast<char *>(data);
     JsonDocument doc;
     deserializeJson(doc, input);
     // no need to validate the json because even if it's invalid it doesnt throw an exception, 
@@ -116,6 +113,7 @@ void TCPServer::handleData(void *arg, AsyncClient *client, void *data, size_t le
     if (interval) {
         // need to use the esp-idf functions rather than the ones from the external library because those 
         // don't work properly when you try to change the interval
+        // TODO save interval with Preferences
         timer_set_counter_value(TIMER_GROUP_0, TIMER_1, 0);
         timer_set_alarm_value(TIMER_GROUP_0, TIMER_1, interval * 1000000);
         timer_start(TIMER_GROUP_0, TIMER_1);
