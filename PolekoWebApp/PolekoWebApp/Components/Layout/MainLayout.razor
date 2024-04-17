@@ -1,8 +1,8 @@
 ﻿@inherits LayoutComponentBase
 
-@* TODO: bind dark mode to user and add switch *@
-<MudThemeProvider IsDarkMode="true" />
-<MudSnackbarProvider />
+<MudThemeProvider @rendermode="InteractiveServer" IsDarkMode="true" />
+<MudSnackbarProvider @rendermode="InteractiveServer" />
+<MudDialogProvider @rendermode="InteractiveServer" />
 
 <MudLayout>
     <MudAppBar Elevation="1" Dense="true">
@@ -12,6 +12,7 @@
         <NavMenu />
     </MudDrawer>
     <MudMainContent Class="pl-8 pt-16 d-flex justify-center" Style="min-height: 70vh">
+        <SnackbarHost />
         @Body
     </MudMainContent>
 </MudLayout>

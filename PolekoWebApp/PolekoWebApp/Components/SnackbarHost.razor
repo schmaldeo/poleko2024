@@ -1,0 +1,22 @@
+﻿@rendermode InteractiveServer
+
+@using PolekoWebApp.Components.Services
+@inject ISnackbar Snackbar
+@inject ILogger<SnackbarHost> Logger
+@inject SensorService SensorService
+
+@code {
+    
+    private void ShowSnackbar(object? _, DisconnectedEventArgs? e)
+    {
+        Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomLeft;
+        Snackbar.Add($"Nie można się połączyć z {e?.IpAddress}", Severity.Error);
+    }
+
+    protected override void OnInitialized()
+    {
+        SensorService.Disconnected += ShowSnackbar;
+        base.OnInitialized();
+    }
+    
+}
