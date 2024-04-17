@@ -29,8 +29,11 @@
                         </MudNavGroup>
                     }
                 }
-                @* TODO authorizeview for admin superadmin *@
-            <MudNavLink Href="Device/Add">Dodaj nowy czujnik</MudNavLink>
+                <AuthorizeView Roles="Admin, SuperAdmin" Context="addDevice">
+                    <Authorized>
+                        <MudNavLink Href="Device/Add">Dodaj nowy czujnik</MudNavLink>
+                    </Authorized>
+                </AuthorizeView>
             @* border style to place the divider on the bottom just above the account settings *@
             <MudDivider Style="border-style: none none solid none" />
             <MudNavLink Href="Account/Manage">@context.User.Identity?.Name</MudNavLink>
