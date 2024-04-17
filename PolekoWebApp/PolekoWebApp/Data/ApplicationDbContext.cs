@@ -31,7 +31,7 @@ public class Sensor
     [JsonPropertyName("ip")] public string? IpAddress { get; set; }
     [JsonPropertyName("mac")] public string? MacAddress { get; set; }
     [JsonIgnore] public bool UsesDhcp { get; set; }
-    [JsonIgnore] public bool OnlyFetchIfMonitoring { get; set; }
+    [JsonIgnore] public bool ManuallyStartFetch { get; set; }
     [NotMapped] public int FetchInterval { get; set; }
     [NotMapped] [JsonIgnore] public TcpClient? TcpClient { get; set; }
     [JsonIgnore] public ICollection<SensorData> Readings { get; }

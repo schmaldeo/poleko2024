@@ -234,7 +234,7 @@ namespace PolekoWebApp.Migrations
                         .HasColumnType("longtext")
                         .HasAnnotation("Relational:JsonPropertyName", "mac");
 
-                    b.Property<bool>("OnlyFetchIfMonitoring")
+                    b.Property<bool>("ManuallyStartFetch")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("UsesDhcp")

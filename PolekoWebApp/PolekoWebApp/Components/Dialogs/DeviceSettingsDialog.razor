@@ -17,8 +17,8 @@
             <MudCheckBox Color="Color.Primary" @bind-Value="_sensorCopy.UsesDhcp"/>
         </MudItem>
         <MudItem>
-            Zapisuj dane tylko gdy czujnik jest monitorowany
-            <MudCheckBox Color="Color.Primary" @bind-Value="_sensorCopy.OnlyFetchIfMonitoring"/>
+            Manualne monitorowania
+            <MudCheckBox Color="Color.Primary" @bind-Value="@_sensorCopy.ManuallyStartFetch"/>
         </MudItem>
     </DialogContent>
     <DialogActions>
@@ -47,7 +47,7 @@
             FetchInterval = Sensor.FetchInterval,
             IpAddress = Sensor.IpAddress,
             MacAddress = Sensor.MacAddress,
-            OnlyFetchIfMonitoring = Sensor.OnlyFetchIfMonitoring,
+            ManuallyStartFetch = Sensor.ManuallyStartFetch,
             Id = Sensor.Id,
             UsesDhcp = Sensor.UsesDhcp
         };

@@ -29,7 +29,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 sensorOnFetchList.IpAddress = sensor.IpAddress;
             }
         }
-        SensorsToFetch = Sensors.Where(x => x.OnlyFetchIfMonitoring == false).ToList();
+        SensorsToFetch = Sensors.Where(x => x.ManuallyStartFetch == false).ToList();
 
         List<Task> tasks = [];
         foreach (var sensor in SensorsToFetch)

@@ -45,7 +45,7 @@
                                                OnClick="OpenSettings"/>
                             </Authorized>
                         </AuthorizeView>
-                        @if (!Sensor.OnlyFetchIfMonitoring)
+                        @if (!Sensor.ManuallyStartFetch && Sensor.Fetching)
                         {
                             <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Large"
                                            Color="Color.Error"
@@ -122,7 +122,7 @@
             var outSensor = (Sensor)result.Data;
             await SaveChangesToDb(outSensor);
             Sensor!.FetchInterval = outSensor.FetchInterval;
-            Sensor!.OnlyFetchIfMonitoring = outSensor.OnlyFetchIfMonitoring;
+            Sensor!.ManuallyStartFetch = outSensor.ManuallyStartFetch;
             Sensor!.UsesDhcp = outSensor.UsesDhcp;
             StateHasChanged();
         }
@@ -135,7 +135,7 @@
         if (sensorInDb is null) return;
         sensorInDb.FetchInterval = sensor.FetchInterval;
         sensorInDb.UsesDhcp = sensor.UsesDhcp;
-        sensorInDb.OnlyFetchIfMonitoring = sensor.OnlyFetchIfMonitoring;
+        sensorInDb.ManuallyStartFetch = sensor.ManuallyStartFetch;
         await dbContext.SaveChangesAsync();
     }
 
@@ -150,7 +150,7 @@
         try
         {
             Sensor = SensorService.Sensors.First(x => x.Id.ToString() == Id);
-            if (!Sensor.OnlyFetchIfMonitoring) Sensor.LastReadingChanged += OnLastReadingChanged;
+            if (!Sensor.ManuallyStartFetch) Sensor.LastReadingChanged += OnLastReadingChanged;
         }
         catch (InvalidOperationException)
         {
@@ -162,7 +162,7 @@
     public void Dispose()
     {
         if (Sensor is null) return;
-        if (Sensor.OnlyFetchIfMonitoring) _cancellationTokenSource.Cancel();
+        if (Sensor.ManuallyStartFetch) _cancellationTokenSource.Cancel();
         if (Sensor.Fetching) Sensor.LastReadingChanged -= OnLastReadingChanged;
     }
 
