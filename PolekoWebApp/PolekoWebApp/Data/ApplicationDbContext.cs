@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Net.Sockets;
 using System.Text.Json.Serialization;
@@ -12,29 +13,18 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     public DbSet<Sensor> Sensors { get; set; }
     public DbSet<SensorData> SensorReadings { get; set; }
-    protected override void OnModelCreating(ModelBuilder builder)
-    {
-        builder.Entity<Sensor>()
-            .HasMany(e => e.Readings)
-            .WithOne(e => e.Sensor)
-            .HasForeignKey(e => e.SensorId)
-            .HasPrincipalKey(e => e.Id);
-        builder.Entity<SensorData>()
-            .HasKey(e => new { e.Epoch, e.SensorId });
-        base.OnModelCreating(builder);
-    }
 }
 
 public class Sensor
 {
-    [JsonIgnore] public int Id { get; set; }
+    [JsonIgnore] public int SensorId { get; set; }
     [JsonPropertyName("ip")] public string? IpAddress { get; set; }
     [JsonPropertyName("mac")] public string? MacAddress { get; set; }
     [JsonIgnore] public bool UsesDhcp { get; set; }
     [JsonIgnore] public bool ManuallyStartFetch { get; set; }
     [NotMapped] public int FetchInterval { get; set; }
     [NotMapped] [JsonIgnore] public TcpClient? TcpClient { get; set; }
-    [JsonIgnore] public ICollection<SensorData> Readings { get; }
+    [JsonIgnore] public List<SensorData> Readings { get; }
     private SensorData? _lastReading;
     [NotMapped] [JsonIgnore] public SensorData LastReading 
     {
@@ -68,7 +58,7 @@ public class Sensor
         }
         return false;
     }
-
+    
     public override int GetHashCode()
     {
         return HashCode.Combine(IpAddress, MacAddress);

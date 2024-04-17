@@ -9,7 +9,7 @@ namespace PolekoWebApp.Components.Services;
 public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFactory, ILogger<SensorService> logger) : BackgroundService
 {
     // TODO clear all buffers on quitting
-    public Sensor[] Sensors { get; private set; }
+    public List<Sensor> Sensors { get; private set; }
     public List<Sensor> SensorsToFetch { get; private set; }
     private UdpClient? _udpClient;
     private CancellationTokenSource _cancellationTokenSource = new();
@@ -40,10 +40,10 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         await Task.WhenAll(tasks);
     }
 
-    private async Task<Sensor[]> GetSensorsFromDb()
+    private async Task<List<Sensor>> GetSensorsFromDb()
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
-        return await dbContext.Sensors.ToArrayAsync();
+        return await dbContext.Sensors.ToListAsync();
     }
 
     private async Task<List<Sensor>> GetSensorsFromUdp()
@@ -86,10 +86,10 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             var buffer = new byte[1024];
             while (true)
             {
+                if (sensor.TcpClient is null) break;
                 var bytesRead = await sensor.TcpClient.GetStream().ReadAsync(buffer, token);
                 if (bytesRead == 0)
                 {
-                    // TODO try restart
                     break;
                 }
 
@@ -107,6 +107,10 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 await AddReadingsToDb(readings);
                 readings.Clear();
             }
+        }
+        catch (IOException e) when (e.InnerException is SocketException se && se.SocketErrorCode == SocketError.OperationAborted)
+        {
+            logger.LogError($"Stopped fetching sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}\n{e.Message}");
         }
         catch (SocketException e)
         {
@@ -128,7 +132,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         {
             sensor.Fetching = false;
             await AddReadingsToDb(readings);
-            sensor.TcpClient.Dispose();
+            sensor.TcpClient?.Dispose();
             sensor.TcpClient = null;
         }
     }
@@ -146,9 +150,39 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
     {
         sensor.Fetching = false;
         await cancellationTokenSource.CancelAsync();
+        sensor.TcpClient?.Close();
+        sensor.TcpClient = null;
         var sensorInList = SensorsToFetch.FirstOrDefault(x => x.IpAddress == sensor.IpAddress || x.MacAddress == sensor.MacAddress);
         if (sensorInList is null) return;
         SensorsToFetch.Remove(sensorInList);
+    }
+    
+    public async Task<int> AddSensorToDb(Sensor sensor)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+        dbContext.Sensors.Add(sensor);
+        await dbContext.SaveChangesAsync();
+        Sensors.Add(sensor);
+        return sensor.SensorId;
+    }
+    
+    public async Task<int> AddSensorToDb(string? ip, string? mac)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+        var sensor = new Sensor
+        {
+            IpAddress = ip,
+            MacAddress = mac
+        };
+        dbContext.Sensors.Add(sensor);
+        await dbContext.SaveChangesAsync();
+        Sensors.Add(sensor);
+        return sensor.SensorId;
+    }
+
+    public async Task RemoveSensorFromDb(Sensor sensor)
+    {
+        throw new NotImplementedException();
     }
 
     private async Task AddReadingsToDb(List<SensorData> readings)
@@ -157,7 +191,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         Sensor? cachedSensor = null;
         foreach (var reading in readings)
         {
-            cachedSensor ??= await dbContext.Sensors.FindAsync(reading.Sensor.Id);
+            cachedSensor ??= await dbContext.Sensors.FindAsync(reading.Sensor.SensorId);
             if (cachedSensor is null) continue;
             reading.Sensor = cachedSensor;
             dbContext.SensorReadings.Add(reading);

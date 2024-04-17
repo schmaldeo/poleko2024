@@ -11,7 +11,6 @@
 @inject ILogger<Device> Logger
 @inject IDialogService DialogService
 @inject SensorService SensorService
-@implements IDisposable
 
 @* TODO sensor settings: interval, connect and fetch when not actively monitoring, is dhcp (in which case only have MAC stored in the db and on each connect get its new IP)? *@
 
@@ -95,19 +94,28 @@
     private bool Error { get; set; }
     private Sensor? Sensor { get; set; }
     private CancellationTokenSource _cancellationTokenSource = new();
+    private bool _eventSubscribed;
 
     private async Task StartTcpClient()
     {
         _cancellationTokenSource = new CancellationTokenSource();
-        Sensor!.LastReadingChanged += OnLastReadingChanged;
+        if (!_eventSubscribed)
+        {
+            Sensor!.LastReadingChanged += OnLastReadingChanged;
+            _eventSubscribed = true;
+        }
         await SensorService.ConnectToSensor(Sensor!, _cancellationTokenSource.Token);
         StateHasChanged();
     }
 
     private async Task StopTcpClient()
     {
+        if (_eventSubscribed)
+        {
+            Sensor!.LastReadingChanged -= OnLastReadingChanged;
+            _eventSubscribed = false;
+        }
         await SensorService.DisconnectFromSensor(Sensor!, _cancellationTokenSource);
-        Sensor!.LastReadingChanged -= OnLastReadingChanged;
         StateHasChanged();
     }
     
@@ -131,7 +139,7 @@
     private async Task SaveChangesToDb(Sensor sensor)
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        var sensorInDb = await dbContext.Sensors.FindAsync(Sensor!.Id);
+        var sensorInDb = await dbContext.Sensors.FindAsync(Sensor!.SensorId);
         if (sensorInDb is null) return;
         sensorInDb.FetchInterval = sensor.FetchInterval;
         sensorInDb.UsesDhcp = sensor.UsesDhcp;
@@ -149,21 +157,23 @@
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         try
         {
-            Sensor = SensorService.Sensors.First(x => x.Id.ToString() == Id);
-            if (!Sensor.ManuallyStartFetch) Sensor.LastReadingChanged += OnLastReadingChanged;
+            var sensor = SensorService.Sensors.FirstOrDefault(x => x.SensorId.ToString() == Id);
+            if (sensor is null)
+            {
+                Error = true;
+            }
+            else
+            {
+                Sensor = sensor;
+                Sensor.LastReadingChanged += OnLastReadingChanged;
+                _eventSubscribed = true;
+            }
         }
         catch (InvalidOperationException)
         {
             Error = true;
         }
         await base.OnInitializedAsync();
-    }
-
-    public void Dispose()
-    {
-        if (Sensor is null) return;
-        if (Sensor.ManuallyStartFetch) _cancellationTokenSource.Cancel();
-        if (Sensor.Fetching) Sensor.LastReadingChanged -= OnLastReadingChanged;
     }
 
 }

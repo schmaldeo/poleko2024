@@ -9,10 +9,12 @@
 @using System.Text.RegularExpressions
 @using Microsoft.EntityFrameworkCore
 @using PolekoWebApp.Components.Dialogs
+@using PolekoWebApp.Components.Services
 @using PolekoWebApp.Data;
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
+@inject SensorService SensorService
 
 <PageTitle>Dodaj nowe czujniki</PageTitle>
 
@@ -63,20 +65,20 @@
     private bool _listeningStopped;
     private MudForm _form;
 
-    private bool TryGetSensorFromDb(ApplicationDbContext dbContext, string? ip, string? mac, out Sensor sensor)
+    private bool TryGetSensorFromDb(string? ip, string? mac, out Sensor sensor)
     {
         Sensor? sensorInDb = null;
         if (!string.IsNullOrWhiteSpace(ip) && !string.IsNullOrWhiteSpace(mac))
         {
-            sensorInDb = dbContext.Sensors.FirstOrDefault(x => x.IpAddress == IpAddress || x.MacAddress == MacAddress);
+            sensorInDb = SensorService.Sensors.FirstOrDefault(x => x.IpAddress == IpAddress || x.MacAddress == MacAddress);
         } 
         else if (string.IsNullOrWhiteSpace(ip) && !string.IsNullOrWhiteSpace(mac))
         {
-            sensorInDb = dbContext.Sensors.FirstOrDefault(x => x.MacAddress == MacAddress);
+            sensorInDb = SensorService.Sensors.FirstOrDefault(x => x.MacAddress == MacAddress);
         }
         else if (!string.IsNullOrWhiteSpace(ip) && string.IsNullOrWhiteSpace(mac))
         {
-            sensorInDb = dbContext.Sensors.FirstOrDefault(x => x.IpAddress == IpAddress);
+            sensorInDb = SensorService.Sensors.FirstOrDefault(x => x.IpAddress == IpAddress);
         }
         if (sensorInDb is null)
         {
@@ -85,25 +87,6 @@
         }
         sensor = sensorInDb;
         return true;
-    }
-
-    private async Task<int> AddSensorToDb(ApplicationDbContext dbContext, Sensor sensor)
-    {
-        dbContext.Sensors.Add(sensor);
-        await dbContext.SaveChangesAsync();
-        return sensor.Id;
-    }
-    
-    private async Task<int> AddSensorToDb(ApplicationDbContext dbContext, string? ip, string? mac)
-    {
-        var sensor = new Sensor
-        {
-            IpAddress = ip,
-            MacAddress = mac
-        };
-        dbContext.Sensors.Add(sensor);
-        await dbContext.SaveChangesAsync();
-        return sensor.Id;
     }
 
     private void NavigateToSensor(int sensorId, bool forceLoad = false)
@@ -130,36 +113,33 @@
                 sensor = Sensors.FirstOrDefault(x => x.IpAddress == IpAddress!.Trim());
             }
             
-            // if the parameters entered don't match any of the sensors detected in the network
+            // if the sensor doesn't match any of the ones found in network
             if (sensor is null)
             {
                 var dialog = await DialogService.ShowAsync<AreYouSureDialog>();
                 var result = await dialog.Result;
                 if (!result.Canceled)
                 {
-                    await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-
-                    if (TryGetSensorFromDb(dbContext, IpAddress, MacAddress, out var dbSensor))
+                    if (TryGetSensorFromDb(IpAddress, MacAddress, out var dbSensor))
                     {
-                        NavigateToSensor(dbSensor.Id);
+                        NavigateToSensor(dbSensor.SensorId);
                     }
                     else
                     {
-                        var id = await AddSensorToDb(dbContext, IpAddress, MacAddress);
+                        var id = await SensorService.AddSensorToDb(IpAddress, MacAddress);
                         NavigateToSensor(id, true);
                     }
                 }
             }
             else
             {
-                await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-                if (TryGetSensorFromDb(dbContext, sensor.IpAddress, sensor.MacAddress, out var dbSensor))
+                if (TryGetSensorFromDb(sensor.IpAddress, sensor.MacAddress, out var dbSensor))
                 {
-                    NavigateToSensor(dbSensor.Id);
+                    NavigateToSensor(dbSensor.SensorId);
                 }
                 else
                 {
-                    var id = await AddSensorToDb(dbContext, sensor);
+                    var id = await SensorService.AddSensorToDb(sensor);
                     NavigateToSensor(id, true);
                 }
             }
