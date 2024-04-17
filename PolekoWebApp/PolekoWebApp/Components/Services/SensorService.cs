@@ -17,19 +17,19 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
     protected override async Task ExecuteAsync(CancellationToken token)
     {
         Sensors = await GetSensorsFromDb();
-        SensorsToFetch = Sensors.Where(x => x.OnlyFetchIfMonitoring == false).ToList();
-        var macOnly = SensorsToFetch.Where(x => x.IpAddress is null).ToArray();
-        if (macOnly.Length != 0)
+        var sensorsWithMacOnly = Sensors.Where(x => x.IpAddress is null).ToArray();
+        if (sensorsWithMacOnly.Length != 0)
         {
             // TODO test
             var udpSensors = await GetSensorsFromUdp();
-            var foundSensors = udpSensors.Where(udp => macOnly.Any(x => udp.MacAddress == x.MacAddress)).ToList();
+            var foundSensors = udpSensors.Where(udp => sensorsWithMacOnly.Any(x => udp.MacAddress == x.MacAddress)).ToList();
             foreach (var sensor in foundSensors)
             {
-                var sensorOnFetchList = SensorsToFetch.First(x => x.MacAddress == sensor.MacAddress);
+                var sensorOnFetchList = Sensors.First(x => x.MacAddress == sensor.MacAddress);
                 sensorOnFetchList.IpAddress = sensor.IpAddress;
             }
         }
+        SensorsToFetch = Sensors.Where(x => x.OnlyFetchIfMonitoring == false).ToList();
 
         List<Task> tasks = [];
         foreach (var sensor in SensorsToFetch)
@@ -72,7 +72,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         return sensorsFound;
     }
 
-    private async Task ConnectToSensorAndAddToDb(Sensor sensor, CancellationToken token, int bufferSize)
+    private async Task ConnectToSensorAndAddToDb(Sensor sensor, CancellationToken token, int bufferSize = 32)
     {
         if (sensor.IpAddress is null) return;
 
@@ -82,6 +82,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         try
         {
             await sensor.TcpClient.ConnectAsync(sensor.IpAddress, 5505, token);
+            sensor.Fetching = true;
             var buffer = new byte[1024];
             while (true)
             {
@@ -91,6 +92,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                     // TODO try restart
                     break;
                 }
+
                 if (token.IsCancellationRequested) break;
 
                 var data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
@@ -108,24 +110,56 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         }
         catch (SocketException e)
         {
+            // TODO try restart
             logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}\n{e.Message}");
+            sensor.Fetching = false;
+        }
+        catch (ObjectDisposedException)
+        {
+            logger.LogInformation($"Fetching stopped on sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}");
+            sensor.Fetching = false;
+        }
+        catch (InvalidOperationException)
+        {
+            logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}");
+            sensor.Fetching = false;
         }
         finally
         {
+            sensor.Fetching = false;
             await AddReadingsToDb(readings);
             sensor.TcpClient.Dispose();
             sensor.TcpClient = null;
         }
     }
 
+    public async Task ConnectToSensor(Sensor sensor, CancellationToken token)
+    {
+        sensor.Fetching = true;
+        var sensorInList = Sensors.FirstOrDefault(x => x.IpAddress == sensor.IpAddress || x.MacAddress == sensor.MacAddress);
+        if (sensorInList is null) return;
+        SensorsToFetch.Add(sensorInList);
+        await ConnectToSensorAndAddToDb(sensor, token, 5);
+    }
+
+    public async Task DisconnectFromSensor(Sensor sensor, CancellationTokenSource cancellationTokenSource)
+    {
+        sensor.Fetching = false;
+        await cancellationTokenSource.CancelAsync();
+        var sensorInList = SensorsToFetch.FirstOrDefault(x => x.IpAddress == sensor.IpAddress || x.MacAddress == sensor.MacAddress);
+        if (sensorInList is null) return;
+        SensorsToFetch.Remove(sensorInList);
+    }
+
     private async Task AddReadingsToDb(List<SensorData> readings)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+        Sensor? cachedSensor = null;
         foreach (var reading in readings)
         {
-            var sensor = await dbContext.Sensors.FindAsync(reading.Sensor.Id);
-            if (sensor is null) continue;
-            reading.Sensor = sensor;
+            cachedSensor ??= await dbContext.Sensors.FindAsync(reading.Sensor.Id);
+            if (cachedSensor is null) continue;
+            reading.Sensor = cachedSensor;
             dbContext.SensorReadings.Add(reading);
         }
         await dbContext.SaveChangesAsync();

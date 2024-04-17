@@ -38,13 +38,15 @@ public class Sensor
     private SensorData? _lastReading;
     [NotMapped] [JsonIgnore] public SensorData LastReading 
     {
-        get => _lastReading ?? new SensorData();
+        get => _lastReading ?? new SensorData {Humidity = 0, Temperature = 0};
         set
         {
             LastReadingChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LastReading)));
             _lastReading = value;
         }
     }
+
+    [NotMapped] [JsonIgnore] public bool Fetching { get; set; }
     
     public event PropertyChangedEventHandler? LastReadingChanged;
     

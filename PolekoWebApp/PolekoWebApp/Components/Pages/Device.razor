@@ -4,12 +4,9 @@
 
 @using PolekoWebApp.Data
 @using Microsoft.EntityFrameworkCore
-@using System.Net.Sockets
-@using System.Text
-@using System.Net
-@using System.Text.Json
 @using PolekoWebApp.Components.Dialogs
 @using PolekoWebApp.Components.Services
+@using System.ComponentModel
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 @inject ILogger<Device> Logger
 @inject IDialogService DialogService
@@ -41,35 +38,47 @@
             <MudPaper Class="pa-4">
                 <MudGrid Justify="Justify.Center" Spacing="4">
                     <MudItem xs="12" Class="d-flex justify-end">
-                        <MudIconButton Icon="@Icons.Material.Filled.Settings" aria-label="settings"
-                                       OnClick="OpenSettings"/>
-                        @if (!_fetching)
+                        @* only show settings to admin and superadmin *@
+                        <AuthorizeView Roles="Admin, SuperAdmin">
+                            <Authorized>
+                                <MudIconButton Icon="@Icons.Material.Filled.Settings" aria-label="settings"
+                                               OnClick="OpenSettings"/>
+                            </Authorized>
+                        </AuthorizeView>
+                        @if (!Sensor.OnlyFetchIfMonitoring)
                         {
-                            <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Large" 
-                                           Color="Color.Tertiary"
-                                           aria-label="start fetching" 
-                                           OnClick="StartTcpClient" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Large"
+                                           Color="Color.Error"
+                                           Disabled="true"
+                                           aria-label="stop fetching"/>
                         }
                         else
                         {
-                            <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Large" 
-                                           Color="Color.Error"
-                                           aria-label="stop fetching"
-                                           OnClick="StopTcpClient" />
+                            @if (!Sensor.Fetching)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Large"
+                                               Color="Color.Tertiary"
+                                               aria-label="start fetching"
+                                               OnClick="StartTcpClient"/>
+                            }
+                            else
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Large"
+                                               Color="Color.Error"
+                                               aria-label="stop fetching"
+                                               OnClick="StopTcpClient"/>
+                            }
                         }
                     </MudItem>
                     <MudItem>
-                        @* TODO add change interval button with authorizeview *@
                         <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
                             <h3>Temperatura</h3>
-                            <span style="font-size: 1.5rem">@Readings.Temperature.ToString("0.00")</span>
                             <span style="font-size: 1.5rem">@Sensor.LastReading.Temperature.ToString("0.00")</span>
                         </MudPaper>
                     </MudItem>
                     <MudItem>
                         <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
                             <h3>Wilgotność</h3>
-                            <span style="font-size: 1.5rem">@Readings.Humidity.ToString("0.00")</span>
                             <span style="font-size: 1.5rem">@Sensor.LastReading.Humidity.ToString("0.00")</span>
                         </MudPaper>
                     </MudItem>
@@ -85,54 +94,23 @@
 
     private bool Error { get; set; }
     private Sensor? Sensor { get; set; }
-    private SensorData Readings { get; set; } = new() { Temperature = 0, Humidity = 0, Rssi = 0 };
-    private TcpClient? _tcpClient;
-    private bool _fetching;
     private CancellationTokenSource _cancellationTokenSource = new();
-
-    private async Task RunTcpClient(CancellationToken token)
-    {
-        _fetching = true;
-        StateHasChanged();
-        _tcpClient = new TcpClient();
-        await _tcpClient.ConnectAsync(IPAddress.Parse(Sensor.IpAddress), 5505, token);
-        var buffer = new byte[1024];
-        while (true)
-        {
-            var bytesRead = await _tcpClient.GetStream().ReadAsync(buffer, 0, buffer.Length, token);
-            if (bytesRead == 0)
-            {
-                break;
-            }
-
-            var data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-            
-            Readings = JsonSerializer.Deserialize<SensorData>(data) 
-                       ?? new SensorData { Temperature = 0, Humidity = 0, Rssi = 0 };
-            StateHasChanged();
-            if (token.IsCancellationRequested)
-            {
-                break;
-            }
-        }
-        _fetching = false;
-    }
 
     private async Task StartTcpClient()
     {
-        // reset the token source to be able to restart fetching multiple times
         _cancellationTokenSource = new CancellationTokenSource();
-        await RunTcpClient(_cancellationTokenSource.Token);
-    }
-
-    private void StopTcpClient()
-    {
-        _cancellationTokenSource.Cancel();
-        _tcpClient?.Close();
-        _fetching = false;
+        Sensor!.LastReadingChanged += OnLastReadingChanged;
+        await SensorService.ConnectToSensor(Sensor!, _cancellationTokenSource.Token);
         StateHasChanged();
     }
 
+    private async Task StopTcpClient()
+    {
+        await SensorService.DisconnectFromSensor(Sensor!, _cancellationTokenSource);
+        Sensor!.LastReadingChanged -= OnLastReadingChanged;
+        StateHasChanged();
+    }
+    
     private async Task OpenSettings()
     {
         var parameters = new DialogParameters<DeviceSettingsDialog> { { x => x.Sensor, Sensor } };
@@ -143,7 +121,9 @@
         {
             var outSensor = (Sensor)result.Data;
             await SaveChangesToDb(outSensor);
-            Sensor = outSensor;
+            Sensor!.FetchInterval = outSensor.FetchInterval;
+            Sensor!.OnlyFetchIfMonitoring = outSensor.OnlyFetchIfMonitoring;
+            Sensor!.UsesDhcp = outSensor.UsesDhcp;
             StateHasChanged();
         }
     }
@@ -159,14 +139,18 @@
         await dbContext.SaveChangesAsync();
     }
 
+    private async void OnLastReadingChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         try
         {
-            Sensor = SensorService.SensorsToFetch.First(x => x.Id.ToString() == Id);
-            Sensor.LastReadingChanged += async (_, _) => { await InvokeAsync(StateHasChanged); };
-            // Sensor = await dbContext.Sensors.Where(x => x.Id.ToString() == Id).FirstAsync();
+            Sensor = SensorService.Sensors.First(x => x.Id.ToString() == Id);
+            if (!Sensor.OnlyFetchIfMonitoring) Sensor.LastReadingChanged += OnLastReadingChanged;
         }
         catch (InvalidOperationException)
         {
@@ -177,8 +161,9 @@
 
     public void Dispose()
     {
-        _cancellationTokenSource.Cancel();
-        _tcpClient?.Close();
+        if (Sensor is null) return;
+        if (Sensor.OnlyFetchIfMonitoring) _cancellationTokenSource.Cancel();
+        if (Sensor.Fetching) Sensor.LastReadingChanged -= OnLastReadingChanged;
     }
 
 }
