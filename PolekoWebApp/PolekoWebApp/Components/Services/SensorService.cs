@@ -8,11 +8,13 @@ namespace PolekoWebApp.Components.Services;
 
 public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFactory, ILogger<SensorService> logger) : BackgroundService
 {
-    // TODO clear all buffers on quitting
+    // TODO connection lost event, subscribe to it and show the dialog in bottom left???
     public List<Sensor> Sensors { get; private set; }
     public List<Sensor> SensorsToFetch { get; private set; }
     private UdpClient? _udpClient;
     private CancellationTokenSource _cancellationTokenSource = new();
+
+    public event EventHandler<DisconnectedEventArgs>? Disconnected;
 
     protected override async Task ExecuteAsync(CancellationToken token)
     {
@@ -34,7 +36,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         List<Task> tasks = [];
         foreach (var sensor in SensorsToFetch)
         {
-            tasks.Add(ConnectToSensorAndAddToDb(sensor, token, 10));
+            tasks.Add(ConnectToSensorAndAddReadingsToDb(sensor, token, 10));
         }
 
         await Task.WhenAll(tasks);
@@ -72,7 +74,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         return sensorsFound;
     }
 
-    private async Task ConnectToSensorAndAddToDb(Sensor sensor, CancellationToken token, int bufferSize = 32)
+    private async Task ConnectToSensorAndAddReadingsToDb(Sensor sensor, CancellationToken token, int bufferSize = 32)
     {
         if (sensor.IpAddress is null) return;
 
@@ -139,11 +141,16 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 
     public async Task ConnectToSensor(Sensor sensor, CancellationToken token)
     {
+        OnDeviceDisconnected(sensor.IpAddress ?? sensor.MacAddress ?? "");
+        // if dhcp
+        //  if ip is null get ip from udp
+        //  if ip is not null connect
+        //      if cannot connect try refresh ip 
         sensor.Fetching = true;
         var sensorInList = Sensors.FirstOrDefault(x => x.IpAddress == sensor.IpAddress || x.MacAddress == sensor.MacAddress);
         if (sensorInList is null) return;
         SensorsToFetch.Add(sensorInList);
-        await ConnectToSensorAndAddToDb(sensor, token, 5);
+        await ConnectToSensorAndAddReadingsToDb(sensor, token, 5);
     }
 
     public async Task DisconnectFromSensor(Sensor sensor, CancellationTokenSource cancellationTokenSource)
@@ -202,4 +209,15 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         }
         await dbContext.SaveChangesAsync();
     }
+
+    private void OnDeviceDisconnected(string ip)
+    {
+        var eventArgs = new DisconnectedEventArgs { IpAddress = ip };
+        Disconnected?.Invoke(this, eventArgs);
+    }
+}
+
+public class DisconnectedEventArgs : EventArgs
+{
+    public string IpAddress { get; init; }
 }
