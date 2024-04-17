@@ -1,5 +1,4 @@
 ﻿@using PolekoWebApp.Data
-@using System.Text.Json
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
@@ -48,7 +47,7 @@
             IpAddress = Sensor.IpAddress,
             MacAddress = Sensor.MacAddress,
             ManuallyStartFetch = Sensor.ManuallyStartFetch,
-            Id = Sensor.Id,
+            SensorId = Sensor.SensorId,
             UsesDhcp = Sensor.UsesDhcp
         };
         base.OnInitialized();

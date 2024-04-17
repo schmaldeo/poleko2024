@@ -220,11 +220,11 @@ namespace PolekoWebApp.Migrations
 
             modelBuilder.Entity("PolekoWebApp.Data.Sensor", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("SensorId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("SensorId"));
 
                     b.Property<string>("IpAddress")
                         .HasColumnType("longtext")
@@ -240,7 +240,7 @@ namespace PolekoWebApp.Migrations
                     b.Property<bool>("UsesDhcp")
                         .HasColumnType("tinyint(1)");
 
-                    b.HasKey("Id");
+                    b.HasKey("SensorId");
 
                     b.ToTable("Sensors");
                 });
