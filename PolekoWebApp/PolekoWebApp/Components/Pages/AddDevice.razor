@@ -114,7 +114,7 @@
             // if the sensor doesn't match any of the ones found in network
             if (sensor is null)
             {
-                var dialog = await DialogService.ShowAsync<AreYouSureDialog>();
+                var dialog = await DialogService.ShowAsync<DeviceNotFoundDialog>();
                 var result = await dialog.Result;
                 if (!result.Canceled)
                 {

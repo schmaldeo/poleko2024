@@ -1,5 +1,7 @@
 ﻿@using PolekoWebApp.Data
+@inject IDialogService DialogService
 
+<MudDialogProvider />
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
@@ -43,9 +45,12 @@
         
     private void Cancel() => MudDialog.Cancel();
 
-    private void Delete()
+    private async Task Delete()
     {
-        MudDialog.Close(DialogResult.Ok(false));
+        var dialog = await DialogService.ShowAsync<AreYouSureDialog>();
+        var result = await dialog.Result;
+        
+        if (!result.Canceled) MudDialog.Close(DialogResult.Ok(false));
     }
 
     protected override void OnInitialized()

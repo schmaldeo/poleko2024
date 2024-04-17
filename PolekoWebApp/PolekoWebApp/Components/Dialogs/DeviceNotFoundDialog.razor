@@ -2,11 +2,11 @@
     <TitleContent>
         <MudText Typo="Typo.h6">
             <MudIcon Icon="@Icons.Material.Filled.QuestionMark" Class="mr-3 mb-n1"/>
-            Czy jesteś pewien?
+            Błąd
         </MudText>
         </TitleContent>
     <DialogContent>
-        Czy na pewno chcesz usunąć ten czujnik?
+        Nie wykryto urządzenia o podanych parametrach w sieci. Czy chcesz je dodać mimo to?
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Nie</MudButton>
@@ -20,3 +20,4 @@
     void Submit() => MudDialog.Close(DialogResult.Ok(true));
     void Cancel() => MudDialog.Cancel();
 }
+
