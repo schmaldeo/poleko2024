@@ -6,22 +6,42 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityUserAccessor UserAccessor
 
-<PageTitle>Profile</PageTitle>
+<PageTitle>Profil</PageTitle>
 
-<h3>Profile</h3>
-<h4>
-    User: @(username ?? "username")
-</h4>
+<MudText Typo="Typo.h5" style="text-align: center">Profil</MudText>
+<MudText Typo="Typo.h6">
+    Użytkownik: @(_username ?? "username")
+</MudText>
+<MudText Typo="Typo.h6">
+    Uprawnienia:
+    @if (_roles is not null)
+    {
+        @if (_roles.Contains("SuperAdmin"))
+        {
+            <span>SuperAdmin</span>
+        } 
+        else if (_roles.Contains("Admin"))
+        {
+            <span>Admin</span>
+        }
+        else
+        {
+            <span>User</span>            
+        }
+    }
+</MudText>
 
 @code {
-    private ApplicationUser user = default!;
-    private string? username;
+    private ApplicationUser _user = default!;
+    private string? _username;
+    private IList<string>? _roles;
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
-        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
-        username = await UserManager.GetUserNameAsync(user);
+        _user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        _username = await UserManager.GetUserNameAsync(_user);
+        _roles = await UserManager.GetRolesAsync(_user);
     }
 }

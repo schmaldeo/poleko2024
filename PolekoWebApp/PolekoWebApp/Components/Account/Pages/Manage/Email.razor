@@ -1,4 +1,5 @@
-﻿@page "/Account/Manage/Email"
+﻿@rendermode InteractiveServer
+@page "/Account/Manage/Email"
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
@@ -7,27 +8,29 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityUserAccessor UserAccessor
 @inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
 @inject ILogger<Email> Logger
 
-<PageTitle>Manage email</PageTitle>
+<PageTitle>Zmień email</PageTitle>
 
-<h3>Manage email</h3>
+<MudText Typo="Typo.h5" style="text-align: center">Zmień email</MudText>
 
 <StatusMessage Message="@message"/>
-<div class="row">
-    <div class="col-md-6">
-        <EditForm Model="Input" FormName="change-email" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <DataAnnotationsValidator/>
-            <ValidationSummary class="text-danger" role="alert"/>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.NewEmail" class="form-control" autocomplete="email" aria-required="true" placeholder="Please enter new email."/>
-                <label for="new-email" class="form-label">New email</label>
+<EditForm Model="Input" FormName="change-email" OnValidSubmit="OnValidSubmitAsync" method="post">
+    <DataAnnotationsValidator/>
+    <ValidationSummary class="text-danger" role="alert"/>
+    <div class="mud-input-control mud-input-required mud-input-input-control pb-2">
+        <div class="mud-input-control-input-container">
+            <div class="mud-input mud-input-text mud-input-underline">
+                <InputText @bind-Value="Input.NewEmail" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="current-password" aria-required="true" placeholder="Hasło"/>
                 <ValidationMessage For="() => Input.NewEmail" class="text-danger"/>
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Change email</button>
-        </EditForm>
+        </div>
     </div>
-</div>
+    <ValidationMessage For="() => Input.NewEmail" class="text-danger"/>
+    <br/>
+    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Zmień email</MudButton>
+</EditForm>
 
 @code {
     private string? message;
@@ -51,7 +54,7 @@
     {
         if (Input.NewEmail is null || Input.NewEmail == email)
         {
-            message = "Your email is unchanged.";
+            message = "Nowy email jest taki sam jak stary.";
             return;
         }
 
@@ -61,7 +64,7 @@
         var setUsername = await UserManager.SetUserNameAsync(user, Input.NewEmail);
         if (!changeEmail.Succeeded || !setUsername.Succeeded)
         {
-            message = "Couldn't change your email.";
+            message = "Nie można zmienić emaila.";
             Logger.LogError("Couldn't change email.");
         }
         await SignInManager.RefreshSignInAsync(user);
@@ -71,7 +74,7 @@
     {
         [Required]
         [EmailAddress]
-        [Display(Name = "New email")]
+        [Display(Name = "Nowy email")]
         public string? NewEmail { get; set; }
     }
 

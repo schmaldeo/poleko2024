@@ -3,14 +3,8 @@
 
 @inject SignInManager<ApplicationUser> SignInManager
 
-<ul class="nav nav-pills flex-column">
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage" Match="NavLinkMatch.All">Profile</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/Email">Email</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/ChangePassword">Password</NavLink>
-    </li>
-</ul>
+<MudNavMenu>
+    <MudNavLink Href="Account/Manage" Match="NavLinkMatch.All">Profil</MudNavLink>
+    <MudNavLink Href="Account/Manage/Email">Email</MudNavLink>
+    <MudNavLink Href="Account/Manage/ChangePassword">Hasło</MudNavLink>
+</MudNavMenu>
