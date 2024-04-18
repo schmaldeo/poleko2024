@@ -1,0 +1,117 @@
+﻿@rendermode InteractiveServer
+@page "/Account/Manage/ManageRoles"
+@using Microsoft.AspNetCore.Identity
+@using PolekoWebApp.Data
+
+@attribute [Authorize(Roles="SuperAdmin")]
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>Zarządzanie rolami</PageTitle>
+
+<MudText Typo="Typo.h5" style="text-align: center">Zarządzaj rolami</MudText>
+
+@if (_users is null)
+{
+    <span>Loading...</span>
+}
+else
+{
+    <MudDataGrid @ref="_dataGrid" Items="_users" Groupable="false" Filterable="false" Dense="true">
+        <Columns>
+            <PropertyColumn Property="x => x.User.Email" />
+            <PropertyColumn Property="x => x.Role" Title="Uprawnienia" Comparer="new RoleComparer()" />
+            <TemplateColumn>
+                <CellTemplate>
+                    @if (context.Item?.Role == "User")
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="async () => await AddToAdmin(context.Item.User)">
+                            Dodaj do Admin
+                        </MudButton>
+                    }
+                    else if (context.Item?.Role == "Admin")
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="async () => await RemoveFromAdmin(context.Item.User)">
+                            Usuń z Admin
+                        </MudButton>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+    </MudDataGrid>
+}
+
+@code {
+    private MudDataGrid<UserRole> _dataGrid;
+    private readonly List<UserRole> _users = [];
+    
+    protected override async Task OnInitializedAsync()
+    {
+        foreach (var user in UserManager.Users.ToArray())
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            string role;
+            if (roles.Contains("SuperAdmin"))
+            {
+                role = "SuperAdmin";
+            } 
+            else if (roles.Contains("Admin"))
+            {
+                role = "Admin";
+            }
+            else
+            {
+                role = "User";
+            }
+            _users.Add(new UserRole { User = user, Role = role });
+        }
+        await base.OnInitializedAsync();
+    }
+
+    private async Task AddToAdmin(ApplicationUser user)
+    {
+        await UserManager.AddToRoleAsync(user, "Admin");
+        NavigationManager.NavigateTo("/Account/Manage/ManageRoles", true);
+    }
+
+    
+    private async Task RemoveFromAdmin(ApplicationUser user)
+    {
+        await UserManager.RemoveFromRoleAsync(user, "Admin");
+        NavigationManager.NavigateTo("/Account/Manage/ManageRoles", true);
+    }
+
+    private class UserRole
+    {
+        public ApplicationUser User { get; set; }
+        public string Role { get; set; }
+    }
+
+    private class RoleComparer : IComparer<object>
+    {
+        public int Compare(object? a, object? b)
+        {
+            var castedA = a as string;
+            var castedB = b as string;
+            if (castedA == castedB) return 0;
+
+            if (castedA == "User") return -1;
+            if (castedB == "User") return 1;
+
+            if (castedA == "Admin") return -1;
+            if (castedB == "Admin") return 1;
+
+            return 0;
+        }
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (firstRender)
+        {
+            await _dataGrid.SetSortAsync(nameof(UserRole.Role), SortDirection.Descending, x => x.Role, new RoleComparer());
+        }
+    }
+}

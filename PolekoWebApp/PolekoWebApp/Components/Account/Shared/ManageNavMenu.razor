@@ -7,4 +7,9 @@
     <MudNavLink Href="Account/Manage" Match="NavLinkMatch.All">Profil</MudNavLink>
     <MudNavLink Href="Account/Manage/Email">Email</MudNavLink>
     <MudNavLink Href="Account/Manage/ChangePassword">Hasło</MudNavLink>
+    <AuthorizeView Roles="SuperAdmin">
+        <Authorized>
+            <MudNavLink Href="Account/Manage/ManageRoles">Zarządzaj uprawnieniami</MudNavLink>
+        </Authorized>
+    </AuthorizeView>
 </MudNavMenu>
