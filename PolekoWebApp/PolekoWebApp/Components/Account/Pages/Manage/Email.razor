@@ -1,5 +1,4 @@
-﻿@rendermode InteractiveServer
-@page "/Account/Manage/Email"
+﻿@page "/Account/Manage/Email"
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
@@ -8,7 +7,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityUserAccessor UserAccessor
 @inject SignInManager<ApplicationUser> SignInManager
-@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
 @inject ILogger<Email> Logger
 
 <PageTitle>Zmień email</PageTitle>
@@ -22,7 +21,7 @@
     <div class="mud-input-control mud-input-required mud-input-input-control pb-2">
         <div class="mud-input-control-input-container">
             <div class="mud-input mud-input-text mud-input-underline">
-                <InputText @bind-Value="Input.NewEmail" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="current-password" aria-required="true" placeholder="Hasło"/>
+                <InputText @bind-Value="Input.NewEmail" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="current-password" aria-required="true" placeholder="Email"/>
                 <ValidationMessage For="() => Input.NewEmail" class="text-danger"/>
             </div>
         </div>
@@ -39,8 +38,7 @@
 
     [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm(FormName = "change-email")]
-    private InputModel Input { get; set; } = new();
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
     
     protected override async Task OnInitializedAsync()
     {
@@ -68,6 +66,7 @@
             Logger.LogError("Couldn't change email.");
         }
         await SignInManager.RefreshSignInAsync(user);
+        RedirectManager.RedirectToCurrentPageWithStatus("Zmieniono email.", HttpContext);
     }
 
     private sealed class InputModel
