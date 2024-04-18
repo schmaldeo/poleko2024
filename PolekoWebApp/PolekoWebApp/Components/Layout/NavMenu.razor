@@ -3,9 +3,11 @@
 @using PolekoWebApp.Data
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.EntityFrameworkCore.Internal
+@using PolekoWebApp.Components.Services
 
 @inject NavigationManager NavigationManager
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
+@inject SensorService SensorService
 
 <MudNavMenu Class="d-flex flex-column" Style="height: 100%;">
     <MudNavLink Href="/" Match="NavLinkMatch.All">Strona główna</MudNavLink>
@@ -67,8 +69,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
-        Sensors = await dbContext.Sensors.ToArrayAsync();
+        Sensors = SensorService.Sensors.ToArray();
         await base.OnInitializedAsync();
     }
 }
