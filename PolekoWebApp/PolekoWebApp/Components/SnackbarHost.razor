@@ -10,7 +10,7 @@
     private void ShowSnackbar(object? _, DisconnectedEventArgs? e)
     {
         Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomLeft;
-        Snackbar.Add($"Nie można połączyć się z {e?.IpAddress}", Severity.Error);
+        Snackbar.Add($"Nie można połączyć się z {e?.Address}", Severity.Error);
     }
 
     protected override void OnInitialized()
