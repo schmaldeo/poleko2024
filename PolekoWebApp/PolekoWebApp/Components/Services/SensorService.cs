@@ -9,11 +9,10 @@ namespace PolekoWebApp.Components.Services;
 
 public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFactory, ILogger<SensorService> logger) : BackgroundService
 {
-    // TODO connection lost event, subscribe to it and show the dialog in bottom left???
     public List<Sensor> Sensors { get; private set; }
     public List<Sensor> SensorsToFetch { get; private set; }
     private UdpClient? _udpClient;
-    private CancellationTokenSource _cancellationTokenSource = new();
+    private bool _udpRunning;
 
     public event EventHandler<DisconnectedEventArgs>? Disconnected;
 
@@ -24,7 +23,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         if (sensorsWithMacOnly.Length != 0)
         {
             // TODO test
-            var udpSensors = await GetSensorsFromUdp();
+            var udpSensors = await GetSensorsFromUdp(token);
             var foundSensors = udpSensors.Where(udp => sensorsWithMacOnly.Any(x => udp.MacAddress == x.MacAddress)).ToList();
             foreach (var sensor in foundSensors)
             {
@@ -49,17 +48,24 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         return await dbContext.Sensors.ToListAsync();
     }
 
-    private async Task<List<Sensor>> GetSensorsFromUdp()
+    public async Task<List<Sensor>> GetSensorsFromUdp(CancellationToken token)
     {
+        if (_udpRunning)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5), token);
+        }
+
+        _udpRunning = true;
         _udpClient = new UdpClient();
         _udpClient.Client.Bind(new IPEndPoint(IPAddress.Any, 5506));
-        _cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(5));
+        var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
+        cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(5));
         List<Sensor> sensorsFound = [];
         try
         {
-            while (!_cancellationTokenSource.Token.IsCancellationRequested)
+            while (!cancellationTokenSource.Token.IsCancellationRequested)
             {
-                var result = await _udpClient.ReceiveAsync(_cancellationTokenSource.Token);
+                var result = await _udpClient.ReceiveAsync(cancellationTokenSource.Token);
                 var resultStr = Encoding.UTF8.GetString(result.Buffer);
                 var device = JsonSerializer.Deserialize<Sensor>(resultStr)!;
                 if (!Sensors.Contains(device))
@@ -68,12 +74,12 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-        }
+        catch (IOException e) when (e.InnerException is SocketException { SocketErrorCode: SocketError.OperationAborted }) { }
+        catch (OperationCanceledException) { }
         finally
         {
             _udpClient.Close();
+            _udpRunning = false;
         }
 
         return sensorsFound;
@@ -106,7 +112,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 
                 var reading = JsonSerializer.Deserialize<SensorData>(data)
                               ?? new SensorData { Temperature = 0, Humidity = 0, Rssi = 0 };
-                reading.Epoch = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                reading.Epoch = DateTimeOffset.Now.ToUnixTimeSeconds();
                 reading.Sensor = sensor;
                 sensor.LastReading = reading;
                 readings.Add(reading);
@@ -115,9 +121,9 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 readings.Clear();
             }
         }
-        catch (IOException e) when (e.InnerException is SocketException se && se.SocketErrorCode == SocketError.OperationAborted)
+        catch (IOException e) when (e.InnerException is SocketException { SocketErrorCode: SocketError.OperationAborted })
         {
-            logger.LogError($"Stopped fetching sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}\n{e.Message}");
+            logger.LogError($"Stopped fetching from sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}\n{e.Message}");
         }
         catch (SocketException e)
         {
@@ -128,7 +134,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         catch (ObjectDisposedException)
         {
             OnDeviceDisconnected(sensor.IpAddress ?? sensor.MacAddress ?? "");
-            logger.LogInformation($"Fetching stopped on sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}");
+            logger.LogInformation($"Stopped fetching from sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}");
             sensor.Fetching = false;
         }
         catch (InvalidOperationException)
@@ -148,7 +154,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 
     public async Task ConnectToSensor(Sensor sensor, CancellationToken token)
     {
-        // if dhcp
+        // TODO if dhcp
         //  if ip is null get ip from udp
         //  if ip is not null connect
         //      if cannot connect try refresh ip 
@@ -219,12 +225,12 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 
     private void OnDeviceDisconnected(string ip)
     {
-        var eventArgs = new DisconnectedEventArgs { IpAddress = ip };
+        var eventArgs = new DisconnectedEventArgs { Address = ip };
         Disconnected?.Invoke(this, eventArgs);
     }
 }
 
 public class DisconnectedEventArgs : EventArgs
 {
-    public string? IpAddress { get; init; }
+    public string? Address { get; init; }
 }

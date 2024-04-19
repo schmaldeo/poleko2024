@@ -59,7 +59,7 @@
     public string? MacAddress { get; set; }
     private List<Sensor> Sensors { get; set; } = [];
 
-    private UdpClient _udpClient = new(5506);
+    private CancellationTokenSource _cancellationTokenSource = new();
     private bool _listeningStopped;
     private MudForm _form;
 
@@ -89,7 +89,6 @@
 
     private void NavigateToSensor(int sensorId, bool forceLoad = false)
     {
-        _udpClient.Dispose();
         NavigationManager.NavigateTo($"Device/{sensorId}", forceLoad);
     }
     
@@ -145,35 +144,36 @@
         }
     }
 
-    private async Task ListenForDevices()
-    {
-        var cancellationTokenSource = new CancellationTokenSource();
-        cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(5));
-        try
-        {
-            while (!cancellationTokenSource.Token.IsCancellationRequested)
-            {
-                var result = await _udpClient.ReceiveAsync(cancellationTokenSource.Token);
-                var resultStr = Encoding.UTF8.GetString(result.Buffer);
-                var device = JsonSerializer.Deserialize<Sensor>(resultStr)!;
-                if (!Sensors.Contains(device))
-                {
-                    Sensors.Add(device);
-                }
-                StateHasChanged();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            _listeningStopped = true;
-        }
-        finally
-        {
-            _udpClient.Close();
-            _listeningStopped = true;
-            StateHasChanged();
-        }
-    }
+    // private async Task ListenForDevices()
+    // {
+    //     var cancellationTokenSource = new CancellationTokenSource();
+    //     cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(5));
+    //     try
+    //     {
+    //         while (!cancellationTokenSource.Token.IsCancellationRequested)
+    //         {
+    //             var result = await _udpClient.ReceiveAsync(cancellationTokenSource.Token);
+    //             var resultStr = Encoding.UTF8.GetString(result.Buffer);
+    //             var device = JsonSerializer.Deserialize<Sensor>(resultStr)!;
+    //             if (!Sensors.Contains(device))
+    //             {
+    //                 Sensors.Add(device);
+    //             }
+    //             StateHasChanged();
+    //         }
+    //     }
+    //     catch (IOException e) when (e.InnerException is SocketException { SocketErrorCode: SocketError.OperationAborted }) { }
+    //     catch (OperationCanceledException)
+    //     {
+    //         _listeningStopped = true;
+    //     }
+    //     finally
+    //     {
+    //         _udpClient.Close();
+    //         _listeningStopped = true;
+    //         StateHasChanged();
+    //     }
+    // }
 
     private void OnRowClick(DataGridRowClickEventArgs<Sensor> args)
     {
@@ -207,13 +207,15 @@
     {
         if (firstRender)
         {
-            await ListenForDevices();
+            Sensors = await SensorService.GetSensorsFromUdp(_cancellationTokenSource.Token);
+            _listeningStopped = true;
         }
         await base.OnAfterRenderAsync(firstRender);
     }
 
     public void Dispose()
     {
-        _udpClient.Close();
+        _cancellationTokenSource.Cancel();
     }
+
 }
