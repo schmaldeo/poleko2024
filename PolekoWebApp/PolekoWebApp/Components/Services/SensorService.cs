@@ -22,8 +22,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         var sensorsWithMacOnly = Sensors.Where(x => x.IpAddress is null).ToArray();
         if (sensorsWithMacOnly.Length != 0)
         {
-            // TODO test
-            var udpSensors = await GetSensorsFromUdp(token);
+            var udpSensors = await GetSensorsFromUdp(false, token);
             var foundSensors = udpSensors.Where(udp => sensorsWithMacOnly.Any(x => udp.MacAddress == x.MacAddress)).ToList();
             foreach (var sensor in foundSensors)
             {
@@ -48,7 +47,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         return await dbContext.Sensors.ToListAsync();
     }
 
-    public async Task<List<Sensor>> GetSensorsFromUdp(CancellationToken token)
+    public async Task<List<Sensor>> GetSensorsFromUdp(bool allowAlreadyAdded, CancellationToken token)
     {
         if (_udpRunning)
         {
@@ -68,7 +67,14 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 var result = await _udpClient.ReceiveAsync(cancellationTokenSource.Token);
                 var resultStr = Encoding.UTF8.GetString(result.Buffer);
                 var device = JsonSerializer.Deserialize<Sensor>(resultStr)!;
-                if (!Sensors.Contains(device))
+                if (!allowAlreadyAdded)
+                {
+                    if (!Sensors.Contains(device))
+                    {
+                        sensorsFound.Add(device);
+                    }
+                }
+                else
                 {
                     sensorsFound.Add(device);
                 }
@@ -81,7 +87,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             _udpClient.Close();
             _udpRunning = false;
         }
-
+        
         return sensorsFound;
     }
 

@@ -144,37 +144,6 @@
         }
     }
 
-    // private async Task ListenForDevices()
-    // {
-    //     var cancellationTokenSource = new CancellationTokenSource();
-    //     cancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(5));
-    //     try
-    //     {
-    //         while (!cancellationTokenSource.Token.IsCancellationRequested)
-    //         {
-    //             var result = await _udpClient.ReceiveAsync(cancellationTokenSource.Token);
-    //             var resultStr = Encoding.UTF8.GetString(result.Buffer);
-    //             var device = JsonSerializer.Deserialize<Sensor>(resultStr)!;
-    //             if (!Sensors.Contains(device))
-    //             {
-    //                 Sensors.Add(device);
-    //             }
-    //             StateHasChanged();
-    //         }
-    //     }
-    //     catch (IOException e) when (e.InnerException is SocketException { SocketErrorCode: SocketError.OperationAborted }) { }
-    //     catch (OperationCanceledException)
-    //     {
-    //         _listeningStopped = true;
-    //     }
-    //     finally
-    //     {
-    //         _udpClient.Close();
-    //         _listeningStopped = true;
-    //         StateHasChanged();
-    //     }
-    // }
-
     private void OnRowClick(DataGridRowClickEventArgs<Sensor> args)
     {
         IpAddress = args.Item.IpAddress!;
@@ -207,8 +176,9 @@
     {
         if (firstRender)
         {
-            Sensors = await SensorService.GetSensorsFromUdp(_cancellationTokenSource.Token);
+            Sensors = await SensorService.GetSensorsFromUdp(false, _cancellationTokenSource.Token);
             _listeningStopped = true;
+            StateHasChanged();
         }
         await base.OnAfterRenderAsync(firstRender);
     }

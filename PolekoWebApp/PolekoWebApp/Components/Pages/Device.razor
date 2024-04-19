@@ -80,6 +80,9 @@
                             <span style="font-size: 1.5rem">@Sensor.LastReading.Humidity.ToString("0.00")</span>
                         </MudPaper>
                     </MudItem>
+                    <MudItem xs="12" Class="d-flex ">
+                        <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="OpenReadings" Style="margin: auto">Open readings</MudButton>
+                    </MudItem>
                 </MudGrid>
             </MudPaper>
         }
@@ -132,6 +135,10 @@
                 Sensor!.FetchInterval = dialogSensor.FetchInterval;
                 Sensor!.ManuallyStartFetch = dialogSensor.ManuallyStartFetch;
                 Sensor!.UsesDhcp = dialogSensor.UsesDhcp;
+                if (!dialogSensor.UsesDhcp)
+                {
+                    Sensor!.IpAddress = dialogSensor.IpAddress;
+                }
                 StateHasChanged();
             }
             else
@@ -140,6 +147,11 @@
                 NavigationManager.NavigateTo("/", true);
             }
         }
+    }
+
+    private async Task OpenReadings()
+    {
+        await DialogService.ShowAsync<SensorReadingsDialog>();
     }
 
     private async Task SaveChangesToDb(Sensor sensor)
