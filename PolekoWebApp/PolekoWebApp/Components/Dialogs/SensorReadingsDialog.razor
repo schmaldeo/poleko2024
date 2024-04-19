@@ -1,7 +1,11 @@
-﻿@using PolekoWebApp.Data
+﻿@rendermode InteractiveServer
+@using PolekoWebApp.Data
+@using PolekoWebApp.Components.Services
+@using System.Globalization
 @inject ILogger<SensorReadingsDialog> Logger
+@inject SensorService SensorService
 
-<MudDialog ContentStyle="min-width: 35rem;">
+<MudDialog Style="min-width: 70vw">
     <TitleContent>
         <MudText Typo="Typo.h6">
             <MudIcon Icon="@Icons.Material.Filled.TableChart" Class="mr-3 mb-n1"/>
@@ -11,26 +15,46 @@
     <DialogContent>
         <MudTabs Elevation="4" Color="Color.Dark" Centered="true">
             <MudTabPanel Text="Tabela">
-                
+                @* TODO add sticky header make wider parse epoch *@
+                <MudDataGrid Items="_dataToDisplay" Dense="true" Virtualize="true" Height="60vh">
+                    <Columns>
+                        <TemplateColumn Title="Data" HeaderStyle="width: 25rem">
+                            <CellTemplate>
+                                @DateTimeOffset.FromUnixTimeSeconds(context.Item.Epoch).DateTime.ToString(CultureInfo.CurrentCulture)
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Temperatura">
+                            <CellTemplate>
+                                @context.Item.Temperature°C
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Wilgotność">
+                            <CellTemplate>
+                                @context.Item.Humidity%
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
             </MudTabPanel>
             <MudTabPanel Text="Wykres">
-                
+                @* <MudChart ChartType="ChartType.Line"></MudChart> *@
             </MudTabPanel>
         </MudTabs>
         <MudItem Class="d-flex flex-row mt-4">
-            <MudItem Class="ma-auto">
+            <MudItem Class="ml-auto mr-2">
                 <MudText Typo="Typo.body1">
                     Od:
                 </MudText>
-                <MudTextField T="DateTime?" Format="yyyy-MM-ddTHH:mm:ss" InputType="InputType.DateTimeLocal" @bind-Value="_beginDate"/>
+                <MudTextField T="string" Format="yyyy-MM-ddTHH:mm:ss" InputType="InputType.DateTimeLocal" @bind-Value="BeginDate"/>
             </MudItem>
-            <MudItem Class="ma-auto">
+            <MudItem Class="mr-auto ml-2">
                 <MudText Typo="Typo.body1">
                     Do:
                 </MudText>
-                <MudTextField T="DateTime?" Format="yyyy-MM-ddTHH:mm:ss" InputType="InputType.DateTimeLocal" @bind-Value="_endDate"/>
+                <MudTextField T="string" Format="yyyy-MM-ddTHH:mm:ss" InputType="InputType.DateTimeLocal" @bind-Value="EndDate"/>
             </MudItem>
         </MudItem>
+        <MudButton OnClick="GetDataFromSensor">Pobierz</MudButton>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Close">Zamknij</MudButton>
@@ -39,11 +63,23 @@
 
 @code {
     [CascadingParameter] MudDialogInstance MudDialog { get; set; }
-    
-    private List<SensorData> _dataToDisplay;
-    private DateTime? _beginDate;
-    private DateTime? _endDate;
+    [Parameter] public Sensor Sensor { get; set; } = null!;
+    // need to set the type of these to String and then parse to DateTime because the input doesn't want to work
+    // properly with DateTime directly
+    private string? BeginDate { get; set; }
+    private string? EndDate { get; set; }
 
+    private SensorData[]? _dataToDisplay;
+
+    private async Task GetDataFromSensor()
+    {
+        if (BeginDate is not null && EndDate is not null)
+        {
+            var beginDateTime = DateTime.Parse(BeginDate);
+            var endDateTime = DateTime.Parse(EndDate);
+            _dataToDisplay = await SensorService.GetReadingsFromDb(Sensor, beginDateTime, endDateTime);
+        }
+    }
 
     void Close() => MudDialog.Close(DialogResult.Cancel());
 }
