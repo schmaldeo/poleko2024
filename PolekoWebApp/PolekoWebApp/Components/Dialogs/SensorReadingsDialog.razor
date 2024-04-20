@@ -2,7 +2,6 @@
 @using PolekoWebApp.Data
 @using PolekoWebApp.Components.Services
 @using System.Globalization
-@inject ILogger<SensorReadingsDialog> Logger
 @inject SensorService SensorService
 
 <MudDialog Style="min-width: 70vw">
@@ -13,48 +12,56 @@
         </MudText>
     </TitleContent>
     <DialogContent>
-        <MudTabs Elevation="4" Color="Color.Dark" Centered="true">
-            <MudTabPanel Text="Tabela">
-                @* TODO add sticky header make wider parse epoch *@
-                <MudDataGrid Items="_dataToDisplay" Dense="true" Virtualize="true" Height="60vh">
-                    <Columns>
-                        <TemplateColumn Title="Data" HeaderStyle="width: 25rem">
-                            <CellTemplate>
-                                @DateTimeOffset.FromUnixTimeSeconds(context.Item.Epoch).DateTime.ToString(CultureInfo.CurrentCulture)
-                            </CellTemplate>
-                        </TemplateColumn>
-                        <TemplateColumn Title="Temperatura">
-                            <CellTemplate>
-                                @context.Item.Temperature°C
-                            </CellTemplate>
-                        </TemplateColumn>
-                        <TemplateColumn Title="Wilgotność">
-                            <CellTemplate>
-                                @context.Item.Humidity%
-                            </CellTemplate>
-                        </TemplateColumn>
-                    </Columns>
-                </MudDataGrid>
-            </MudTabPanel>
-            <MudTabPanel Text="Wykres">
-                @* <MudChart ChartType="ChartType.Line"></MudChart> *@
-            </MudTabPanel>
-        </MudTabs>
+        @if (_fetched)
+        {
+            <MudTabs Elevation="4" Color="Color.Dark" Centered="true">
+                <MudTabPanel Text="Tabela">
+                    <MudDataGrid Items="_dataToDisplay" Dense="true" Virtualize="true" Height="60vh">
+                        <Columns>
+                            <TemplateColumn Title="Data" HeaderStyle="width: 25rem">
+                                <CellTemplate>
+                                    @DateTimeOffset.FromUnixTimeSeconds(context.Item.Epoch).DateTime.ToString(CultureInfo.CurrentCulture)
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Temperatura">
+                                <CellTemplate>
+                                    @context.Item.Temperature°C
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Wilgotność">
+                                <CellTemplate>
+                                    @context.Item.Humidity%
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                </MudTabPanel>
+                <MudTabPanel Text="Wykres">
+                    <MudChart ChartType="ChartType.Line" ChartSeries="Series" CanHideSeries="true" Style="margin: auto"
+                              Width="100%" Height="60vh" ChartOptions="Options" @bind-SelectedIndex="Index"/>
+                </MudTabPanel>
+            </MudTabs>
+        }
+        <MudItem Style="display: flex; width: 100%;">
+            <MudText Typo="Typo.h5" Style="margin: auto">Wybierz daty</MudText>
+        </MudItem>
         <MudItem Class="d-flex flex-row mt-4">
-            <MudItem Class="ml-auto mr-2">
+            <MudItem Class="ml-auto mr-4">
                 <MudText Typo="Typo.body1">
                     Od:
                 </MudText>
                 <MudTextField T="string" Format="yyyy-MM-ddTHH:mm:ss" InputType="InputType.DateTimeLocal" @bind-Value="BeginDate"/>
             </MudItem>
-            <MudItem Class="mr-auto ml-2">
+            <MudItem Class="mr-auto ml-4">
                 <MudText Typo="Typo.body1">
                     Do:
                 </MudText>
                 <MudTextField T="string" Format="yyyy-MM-ddTHH:mm:ss" InputType="InputType.DateTimeLocal" @bind-Value="EndDate"/>
             </MudItem>
         </MudItem>
-        <MudButton OnClick="GetDataFromSensor">Pobierz</MudButton>
+        <MudItem Style="display: flex; width: 100%;">
+            <MudButton Variant="Variant.Filled" OnClick="GetDataFromSensor" class="mx-auto mt-3">Pobierz dane z bazy</MudButton>
+        </MudItem>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Close">Zamknij</MudButton>
@@ -64,6 +71,12 @@
 @code {
     [CascadingParameter] MudDialogInstance MudDialog { get; set; }
     [Parameter] public Sensor Sensor { get; set; } = null!;
+
+    private bool _fetched;
+
+    private int Index = -1;
+    private ChartOptions Options = new();
+    private List<ChartSeries> Series = [];
     // need to set the type of these to String and then parse to DateTime because the input doesn't want to work
     // properly with DateTime directly
     private string? BeginDate { get; set; }
@@ -78,7 +91,19 @@
             var beginDateTime = DateTime.Parse(BeginDate);
             var endDateTime = DateTime.Parse(EndDate);
             _dataToDisplay = await SensorService.GetReadingsFromDb(Sensor, beginDateTime, endDateTime);
+            Series =
+            [
+                new ChartSeries { Name = "Temperatura", Data = _dataToDisplay.Select(x => (double)x.Temperature).ToArray() },
+                new ChartSeries { Name = "Wilgotność", Data = _dataToDisplay.Select(x => (double)x.Humidity).ToArray() }
+            ];
+            _fetched = true;
         }
+    }
+
+    protected override void OnInitialized()
+    {
+        Options.LineStrokeWidth = 1;
+        base.OnInitialized();
     }
 
     void Close() => MudDialog.Close(DialogResult.Cancel());
