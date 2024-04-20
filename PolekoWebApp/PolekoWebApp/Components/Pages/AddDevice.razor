@@ -3,9 +3,6 @@
 @attribute [Authorize(Roles="SuperAdmin, Admin")]
 
 @implements IDisposable
-@using System.Net.Sockets
-@using System.Text
-@using System.Text.Json;
 @using System.Text.RegularExpressions
 @using PolekoWebApp.Components.Dialogs
 @using PolekoWebApp.Components.Services
@@ -43,9 +40,14 @@
                 </MudDataGrid>
                 <span style="color: darkgrey; font-size: 0.8rem" class="ml-3">(kliknij w wiersz żeby wpisać parametry wybranego czujnika)</span>
             }
-            @if (_listeningStopped && Sensors.Count == 0)
+            @if (_listeningStopped)
             {
-                <span class="align-self-center">Nie znaleziono żadnych czujników w sieci</span>
+                if (Sensors.Count == 0)
+                {
+                    <span class="align-self-center">Nie znaleziono żadnych czujników w sieci</span>
+                }
+
+                <MudButton Variant="Variant.Outlined" Style="width: 10rem; margin: auto" OnClick="RefreshSensors">Odśwież</MudButton>
             }
             <MudButton ButtonType="ButtonType.Button" Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Class="mt-4">
                 Dodaj
@@ -62,6 +64,16 @@
     private CancellationTokenSource _cancellationTokenSource = new();
     private bool _listeningStopped;
     private MudForm _form;
+
+    private async Task RefreshSensors()
+    {
+        _listeningStopped = false;
+        StateHasChanged();
+        await SensorService.RefreshSensorsInNetwork(_cancellationTokenSource.Token);
+        Sensors = SensorService.SensorsInNetwork;
+        _listeningStopped = true;
+        StateHasChanged();
+    }
 
     private bool TryGetSensorFromDb(string? ip, string? mac, out Sensor sensor)
     {
@@ -176,7 +188,7 @@
     {
         if (firstRender)
         {
-            Sensors = await SensorService.GetSensorsFromUdp(false, _cancellationTokenSource.Token);
+            Sensors = SensorService.SensorsInNetwork;
             _listeningStopped = true;
             StateHasChanged();
         }

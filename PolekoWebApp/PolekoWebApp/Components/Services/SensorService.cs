@@ -9,8 +9,9 @@ namespace PolekoWebApp.Components.Services;
 
 public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFactory, ILogger<SensorService> logger) : BackgroundService
 {
-    public List<Sensor> Sensors { get; private set; }
-    public List<Sensor> SensorsToFetch { get; private set; }
+    public List<Sensor> Sensors { get; private set; } = [];
+    public List<Sensor> SensorsInNetwork { get; private set; } = [];
+    private List<Sensor> SensorsToFetch { get; set; } = [];
     private UdpClient? _udpClient;
     private bool _udpRunning;
 
@@ -21,9 +22,9 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         Sensors = await GetSensorsFromDb();
         var sensorsWithMacOnly = Sensors.Where(x => x.IpAddress is null).ToArray();
         if (sensorsWithMacOnly.Length != 0)
-        {
-            var udpSensors = await GetSensorsFromUdp(false, token);
-            var foundSensors = udpSensors.Where(udp => sensorsWithMacOnly.Any(x => udp.MacAddress == x.MacAddress)).ToList();
+        { 
+            SensorsInNetwork = await GetSensorsFromUdp(false, token);
+            var foundSensors = SensorsInNetwork.Where(udp => sensorsWithMacOnly.Any(x => udp.MacAddress == x.MacAddress)).ToList();
             foreach (var sensor in foundSensors)
             {
                 var sensorOnFetchList = Sensors.First(x => x.MacAddress == sensor.MacAddress);
@@ -38,6 +39,11 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             tasks.Add(ConnectToSensorAndAddReadingsToDb(sensor, token, 10));
         }
 
+        // refresh sensors from UDP every 5 minutes. better than having it done on client request because in case of
+        // heavy traffic it would take ages for some clients to get the return value of that function
+        var timer = new Timer(async _ => { await RefreshSensorsInNetwork(new CancellationToken()); },
+            null, TimeSpan.Zero, TimeSpan.FromMinutes(5));
+
         await Task.WhenAll(tasks);
     }
 
@@ -47,7 +53,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         return await dbContext.Sensors.ToListAsync();
     }
 
-    public async Task<List<Sensor>> GetSensorsFromUdp(bool allowAlreadyAdded, CancellationToken token)
+    private async Task<List<Sensor>> GetSensorsFromUdp(bool allowAlreadyAdded, CancellationToken token)
     {
         if (_udpRunning)
         {
@@ -89,6 +95,11 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         }
         
         return sensorsFound;
+    }
+
+    public async Task RefreshSensorsInNetwork(CancellationToken token)
+    {
+        SensorsInNetwork = await GetSensorsFromUdp(true, token);
     }
 
     private async Task ConnectToSensorAndAddReadingsToDb(Sensor sensor, CancellationToken token, int bufferSize = 32)
