@@ -229,11 +229,22 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         await dbContext.SaveChangesAsync();
     }
 
+    public async Task<SensorData[]> GetReadingsFromDb(Sensor sensor, DateTime beginDate, DateTime endDate)
+    {
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+        var beginDateEpoch = ((DateTimeOffset)beginDate).ToUnixTimeSeconds();
+        var endDateEpoch = ((DateTimeOffset)endDate).ToUnixTimeSeconds();
+        return dbContext.SensorReadings
+            .Where(x => x.SensorId == sensor.SensorId && x.Epoch >= beginDateEpoch && x.Epoch <= endDateEpoch)
+            .ToArray();
+    }
+
     private void OnDeviceDisconnected(string ip)
     {
         var eventArgs = new DisconnectedEventArgs { Address = ip };
         Disconnected?.Invoke(this, eventArgs);
     }
+    
 }
 
 public class DisconnectedEventArgs : EventArgs

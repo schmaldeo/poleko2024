@@ -151,7 +151,8 @@
 
     private async Task OpenReadings()
     {
-        await DialogService.ShowAsync<SensorReadingsDialog>();
+        var parameters = new DialogParameters<DeviceSettingsDialog> { { x => x.Sensor, Sensor } };
+        await DialogService.ShowAsync<SensorReadingsDialog>("Odczyty", parameters);
     }
 
     private async Task SaveChangesToDb(Sensor sensor)
