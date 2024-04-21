@@ -1,7 +1,11 @@
 ﻿@rendermode InteractiveServer
 @using PolekoWebApp.Data
 @using PolekoWebApp.Components.Services
+@using Plotly.Blazor
+@using Plotly.Blazor.Traces
 @using System.Globalization
+@using Plotly.Blazor.Traces.ScatterLib
+@using CsvHelper
 @inject SensorService SensorService
 
 <MudDialog Style="min-width: 70vw">
@@ -37,12 +41,11 @@
                     </MudDataGrid>
                 </MudTabPanel>
                 <MudTabPanel Text="Wykres">
-                    <MudChart ChartType="ChartType.Line" ChartSeries="Series" CanHideSeries="true" Style="margin: auto"
-                              Width="100%" Height="60vh" ChartOptions="Options" @bind-SelectedIndex="Index"/>
+                    <PlotlyChart @bind-Config="_config" @bind-Layout="_layout" @bind-Data="_chartData" @ref="chart"/>
                 </MudTabPanel>
             </MudTabs>
         }
-        <MudItem Style="display: flex; width: 100%;">
+        <MudItem Style="display: flex; width: 100%;" Class="mt-4">
             <MudText Typo="Typo.h5" Style="margin: auto">Wybierz daty</MudText>
         </MudItem>
         <MudItem Class="d-flex flex-row mt-4">
@@ -73,14 +76,15 @@
     [Parameter] public Sensor Sensor { get; set; } = null!;
 
     private bool _fetched;
-
-    private int Index = -1;
-    private ChartOptions Options = new();
-    private List<ChartSeries> Series = [];
+    
     // need to set the type of these to String and then parse to DateTime because the input doesn't want to work
     // properly with DateTime directly
     private string? BeginDate { get; set; }
     private string? EndDate { get; set; }
+    private PlotlyChart chart;
+    private Config _config = new() {Responsive = true};
+    private Layout _layout = new();
+    private IList<ITrace> _chartData = [];
 
     private SensorData[]? _dataToDisplay;
 
@@ -91,19 +95,34 @@
             var beginDateTime = DateTime.Parse(BeginDate);
             var endDateTime = DateTime.Parse(EndDate);
             _dataToDisplay = await SensorService.GetReadingsFromDb(Sensor, beginDateTime, endDateTime);
-            Series =
-            [
-                new ChartSeries { Name = "Temperatura", Data = _dataToDisplay.Select(x => (double)x.Temperature).ToArray() },
-                new ChartSeries { Name = "Wilgotność", Data = _dataToDisplay.Select(x => (double)x.Humidity).ToArray() }
-            ];
+            var wasChartFilled = false;
+            if (_chartData.Count > 0)
+            {
+                _chartData.Clear();
+                wasChartFilled = true;
+            }
+            _chartData.Add(new Scatter
+            {
+                Name = "Temperatura",
+                Mode = ModeFlag.Markers,
+                Y = _dataToDisplay.Select(x => (object)x.Temperature).ToList(),
+                X = _dataToDisplay.Select(x => (object)DateTimeOffset.FromUnixTimeSeconds(x.Epoch).DateTime
+                .ToString(CultureInfo.CurrentCulture)).ToArray()
+            });
+            _chartData.Add(new Scatter
+            {
+                Name = "Wilgotność",
+                Mode = ModeFlag.Markers,
+                Y = _dataToDisplay.Select(x => (object)x.Humidity).ToList(),
+                X = _dataToDisplay.Select(x => (object)DateTimeOffset.FromUnixTimeSeconds(x.Epoch).DateTime
+                    .ToString(CultureInfo.CurrentCulture)).ToArray()
+            });
+            if (wasChartFilled)
+            {
+                await chart.React();
+            }
             _fetched = true;
         }
-    }
-
-    protected override void OnInitialized()
-    {
-        Options.LineStrokeWidth = 1;
-        base.OnInitialized();
     }
 
     void Close() => MudDialog.Close(DialogResult.Cancel());
