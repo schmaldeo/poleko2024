@@ -4,6 +4,7 @@
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.EntityFrameworkCore.Internal
 @using PolekoWebApp.Components.Services
+@using System.ComponentModel
 
 @inject NavigationManager NavigationManager
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
@@ -24,8 +25,19 @@
                         <MudNavGroup Title="Czujniki" Expanded="true">
                             @foreach (var sensor in Sensors)
                             {
-                                <MudNavLink Href="@($"Device/{sensor.SensorId}")">
-                                    @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
+                                <MudNavLink Href="@($"Device/{sensor.SensorId}")" Class="d-inline-flex">
+                                    <span class="material-icons">@GetIconFromRssi(sensor)</span>
+                                    @if (sensor.Fetching)
+                                    {
+                                        <MudText Color="Color.Success" Typo="Typo.body2">
+                                            @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
+                                        </MudText>
+                                        
+                                    }
+                                    else
+                                    {
+                                        @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
+                                    }
                                 </MudNavLink>
                             }
                         </MudNavGroup>
@@ -67,9 +79,31 @@
 @code {
     private Sensor[]? Sensors { get; set; }
 
+    private string GetIconFromRssi(Sensor sensor)
+    {
+        return sensor.Rssi switch
+        {
+            null => "signal_wifi_off",
+            > -32 => "network_wifi",
+            > -64 => "network_wifi_3_bar",
+            > -96 => "network_wifi_2_bar",
+            _ => "network_wifi_1_bar"
+        };
+    }
+
+    private async void SensorPropertyChangedHandler(object? _, PropertyChangedEventArgs args)
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+    
     protected override async Task OnInitializedAsync()
     {
         Sensors = SensorService.Sensors.ToArray();
+        // every rerender the navbar every time new reading is fetched to get fresh WiFi status
+        foreach (var sensor in Sensors)
+        {
+            sensor.PropertyHasChanged += SensorPropertyChangedHandler;
+        }
         await base.OnInitializedAsync();
     }
 }
