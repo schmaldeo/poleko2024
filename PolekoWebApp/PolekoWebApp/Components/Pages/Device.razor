@@ -32,10 +32,13 @@
         }
         else
         {
-            <h2 style="text-align: center" class="ma-3">@((Sensor.UsesDhcp ? Sensor.MacAddress : Sensor.IpAddress) ?? Sensor.MacAddress)</h2>
             <MudPaper Class="pa-4">
                 <MudGrid Justify="Justify.Center" Spacing="4">
-                    <MudItem xs="12" Class="d-flex justify-end">
+                    <MudItem xs="3"/>
+                    <MudItem xs="6" Class="d-flex align-center">
+                        <h2 style="text-align: center" class="ma-auto">@((Sensor.UsesDhcp ? Sensor.MacAddress : Sensor.IpAddress) ?? Sensor.MacAddress)</h2>
+                    </MudItem>
+                    <MudItem xs="3" Class="d-flex justify-end">
                         @* only show settings to admin and superadmin *@
                         <AuthorizeView Roles="Admin, SuperAdmin">
                             <Authorized>
