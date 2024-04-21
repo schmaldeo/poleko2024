@@ -23,6 +23,7 @@
                     @if (Sensors.Length > 0)
                     {
                         <MudNavGroup Title="Czujniki" Expanded="true">
+                            @* TODO change color to red if error *@
                             @foreach (var sensor in Sensors)
                             {
                                 <MudNavLink Href="@($"Device/{sensor.SensorId}")">

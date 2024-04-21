@@ -1,4 +1,5 @@
 ﻿@rendermode InteractiveServer
+@using System.IO;
 @using PolekoWebApp.Data
 @using PolekoWebApp.Components.Services
 @using Plotly.Blazor
@@ -6,7 +7,12 @@
 @using System.Globalization
 @using Plotly.Blazor.Traces.ScatterLib
 @using CsvHelper
+@using CsvHelper.Configuration
+@using System.ComponentModel
+@using System.Text
+@using CsvHelper.TypeConversion
 @inject SensorService SensorService
+@inject IJSRuntime JS
 
 <MudDialog Style="min-width: 70vw">
     <TitleContent>
@@ -39,9 +45,10 @@
                             </TemplateColumn>
                         </Columns>
                     </MudDataGrid>
+                    <MudButton OnClick="SaveCsv" Variant="Variant.Outlined" Style="width: 100%">Pobierz .csv</MudButton>
                 </MudTabPanel>
                 <MudTabPanel Text="Wykres">
-                    <PlotlyChart @bind-Config="_config" @bind-Layout="_layout" @bind-Data="_chartData" @ref="chart"/>
+                    <PlotlyChart @bind-Config="_config" @bind-Layout="_layout" @bind-Data="_chartData" @ref="_chart"/>
                 </MudTabPanel>
             </MudTabs>
         }
@@ -81,12 +88,35 @@
     // properly with DateTime directly
     private string? BeginDate { get; set; }
     private string? EndDate { get; set; }
-    private PlotlyChart chart;
+    private PlotlyChart _chart;
     private Config _config = new() {Responsive = true};
     private Layout _layout = new();
     private IList<ITrace> _chartData = [];
 
     private SensorData[]? _dataToDisplay;
+
+    private async Task SaveCsv()
+    {
+        var stream = GetStream();
+        var fileName = "dane.csv";
+
+        using var streamRef = new DotNetStreamReference(stream: stream);
+
+        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        await stream.DisposeAsync();
+    }
+
+    private System.IO.Stream GetStream()
+    {
+        var memoryStream = new MemoryStream();
+        using var writer = new StreamWriter(memoryStream, encoding: Encoding.UTF8, leaveOpen: true);
+        using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
+        csv.Context.RegisterClassMap<CsvMap>();
+        csv.WriteRecords(_dataToDisplay);
+        writer.Flush();
+        memoryStream.Position = 0;
+        return memoryStream;
+    }
 
     private async Task GetDataFromSensor()
     {
@@ -119,11 +149,39 @@
             });
             if (wasChartFilled)
             {
-                await chart.React();
+                await _chart.React();
             }
             _fetched = true;
         }
     }
 
     void Close() => MudDialog.Close(DialogResult.Cancel());
+
+    private sealed class CsvMap : ClassMap<SensorData>
+    {
+        public CsvMap()
+        {
+            Map(m => m.Epoch).Index(0).Name("Data").TypeConverter<EpochToStringConverter>();
+            Map(m => m.Temperature).Index(1).Name("Temperatura");
+            Map(m => m.Humidity).Index(1).Name("Wilgotność");
+        }
+    }
+    
+    public class EpochToStringConverter : ITypeConverter
+    {
+        public object ConvertFromString(string text, IReaderRow row, MemberMapData memberMapData)
+        {
+            return DateTime.TryParse(text, out var dateTime) ? new DateTimeOffset(dateTime).ToUnixTimeSeconds() : 0;
+        }
+
+        public string ConvertToString(object value, IWriterRow row, MemberMapData memberMapData)
+        {
+            if (value is long epoch)
+            {
+                return DateTimeOffset.FromUnixTimeSeconds(epoch).DateTime.ToString(CultureInfo.CurrentCulture);
+            }
+
+            return "";
+        }
+    }
 }
