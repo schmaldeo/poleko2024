@@ -20,6 +20,8 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
     protected override async Task ExecuteAsync(CancellationToken token)
     {
         Sensors = await GetSensorsFromDb();
+
+        // find IPs of sensors that use DHCP/don't have an IP address saved in the database
         var sensorsWithMacOnly = Sensors.Where(x => x.IpAddress is null).ToArray();
         if (sensorsWithMacOnly.Length != 0)
         { 
@@ -27,8 +29,8 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             var foundSensors = SensorsInNetwork.Where(udp => sensorsWithMacOnly.Any(x => udp.MacAddress == x.MacAddress)).ToList();
             foreach (var sensor in foundSensors)
             {
-                var sensorOnFetchList = Sensors.First(x => x.MacAddress == sensor.MacAddress);
-                sensorOnFetchList.IpAddress = sensor.IpAddress;
+                var sensorInList = Sensors.First(x => x.MacAddress == sensor.MacAddress);
+                sensorInList.IpAddress = sensor.IpAddress;
             }
         }
         SensorsToFetch = Sensors.Where(x => x.ManuallyStartFetch == false).ToList();
@@ -132,6 +134,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 reading.Epoch = DateTimeOffset.Now.ToUnixTimeSeconds();
                 reading.Sensor = sensor;
                 sensor.LastReading = reading;
+                sensor.Rssi = reading.Rssi;
                 readings.Add(reading);
                 if (readings.Count != bufferSize) continue;
                 await AddReadingsToDb(readings);
