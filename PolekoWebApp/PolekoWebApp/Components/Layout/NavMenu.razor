@@ -25,19 +25,23 @@
                         <MudNavGroup Title="Czujniki" Expanded="true">
                             @foreach (var sensor in Sensors)
                             {
-                                <MudNavLink Href="@($"Device/{sensor.SensorId}")" Class="d-inline-flex">
-                                    <span class="material-icons">@GetIconFromRssi(sensor)</span>
-                                    @if (sensor.Fetching)
-                                    {
-                                        <MudText Color="Color.Success" Typo="Typo.body2">
-                                            @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
-                                        </MudText>
-                                        
-                                    }
-                                    else
-                                    {
-                                        @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
-                                    }
+                                <MudNavLink Href="@($"Device/{sensor.SensorId}")">
+                                    <div class="d-flex flex-row align-center">
+                                        <span class="material-icons mr-2">@GetIconFromRssi(sensor)</span>
+                                        @if (sensor.Fetching)
+                                        {
+                                            <MudText Color="Color.Success" Typo="Typo.body2" Class="d-inline">
+                                                @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
+                                            </MudText>
+
+                                        }
+                                        else
+                                        {
+                                            <MudText Typo="Typo.body2" Class="d-inline">
+                                                @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
+                                            </MudText>
+                                        }
+                                    </div>
                                 </MudNavLink>
                             }
                         </MudNavGroup>
