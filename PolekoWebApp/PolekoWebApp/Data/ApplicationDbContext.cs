@@ -23,6 +23,7 @@ public class Sensor
     [JsonIgnore] public bool UsesDhcp { get; set; }
     [JsonIgnore] public bool ManuallyStartFetch { get; set; }
     [NotMapped] public int FetchInterval { get; set; }
+    [NotMapped] [JsonIgnore] public int? Rssi { get; set; }
     [NotMapped] [JsonIgnore] public TcpClient? TcpClient { get; set; }
     [JsonIgnore] public List<SensorData> Readings { get; }
     private SensorData? _lastReading;
@@ -31,14 +32,14 @@ public class Sensor
         get => _lastReading ?? new SensorData {Humidity = 0, Temperature = 0};
         set
         {
-            LastReadingChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LastReading)));
+            PropertyHasChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LastReading)));
             _lastReading = value;
         }
     }
 
     [NotMapped] [JsonIgnore] public bool Fetching { get; set; }
     
-    public event PropertyChangedEventHandler? LastReadingChanged;
+    public event PropertyChangedEventHandler? PropertyHasChanged;
     
     public static bool operator ==(Sensor a, Sensor b)
     {

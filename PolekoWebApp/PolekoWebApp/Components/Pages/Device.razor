@@ -103,7 +103,7 @@
         _cancellationTokenSource = new CancellationTokenSource();
         if (!_eventSubscribed)
         {
-            Sensor!.LastReadingChanged += OnLastReadingChanged;
+            Sensor!.PropertyHasChanged += OnPropertyHasChanged;
             _eventSubscribed = true;
         }
         await SensorService.ConnectToSensor(Sensor!, _cancellationTokenSource.Token);
@@ -114,7 +114,7 @@
     {
         if (_eventSubscribed)
         {
-            Sensor!.LastReadingChanged -= OnLastReadingChanged;
+            Sensor!.PropertyHasChanged -= OnPropertyHasChanged;
             _eventSubscribed = false;
         }
         await SensorService.DisconnectFromSensor(Sensor!, _cancellationTokenSource);
@@ -166,9 +166,12 @@
         await dbContext.SaveChangesAsync();
     }
 
-    private async void OnLastReadingChanged(object? sender, PropertyChangedEventArgs args)
+    private async void OnPropertyHasChanged(object? sender, PropertyChangedEventArgs args)
     {
-        await InvokeAsync(StateHasChanged);
+        if (args.PropertyName == nameof(Sensor.LastReading))
+        {
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     protected override async Task OnInitializedAsync()
@@ -184,7 +187,7 @@
             else
             {
                 Sensor = sensor;
-                Sensor.LastReadingChanged += OnLastReadingChanged;
+                Sensor.PropertyHasChanged += OnPropertyHasChanged;
                 _eventSubscribed = true;
             }
         }
