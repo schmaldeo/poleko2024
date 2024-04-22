@@ -84,8 +84,8 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="12" Class="d-flex ">
-                        <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="OpenReadings" Style="margin: auto">Historia odczytów</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshSensorIp" Style="margin: auto">Odśwież adres IP</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="OpenReadings" Class="mr-2 ml-auto">Historia odczytów</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshSensorIp" Class="ml-2 mr-auto">Odśwież adres IP</MudButton>
                     </MudItem>
                 </MudGrid>
             </MudPaper>
@@ -153,10 +153,16 @@
                 await SaveChangesToDb(dialogSensor);
                 if (Sensor!.FetchInterval != dialogSensor.FetchInterval && Sensor!.Fetching)
                 {
+                    // the interval doesn't change if the TCP connection is not already established (e.g. fetching)
+                    // but we're calling ChangeInterval anyway because it shows a snackbar message explaining why the
+                    // operation cannot be performed
                     if (_cancellationTokenSource.IsCancellationRequested) 
                         _cancellationTokenSource = new CancellationTokenSource();
                     await SensorService.ChangeInterval(Sensor!, dialogSensor.FetchInterval, _cancellationTokenSource.Token);
-                    Sensor!.FetchInterval = dialogSensor.FetchInterval;
+                    if (Sensor!.Fetching)
+                    {
+                        Sensor!.FetchInterval = dialogSensor.FetchInterval;
+                    }
                 }
                 Sensor!.ManuallyStartFetch = dialogSensor.ManuallyStartFetch;
                 Sensor!.UsesDhcp = dialogSensor.UsesDhcp;
