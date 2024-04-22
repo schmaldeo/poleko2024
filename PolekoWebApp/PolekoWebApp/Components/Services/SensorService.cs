@@ -150,18 +150,21 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             OnDeviceDisconnected(sensor.IpAddress ?? sensor.MacAddress ?? "");
             logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}\n{e.Message}");
             sensor.Fetching = false;
+            sensor.Error = true;
         }
         catch (ObjectDisposedException)
         {
             OnDeviceDisconnected(sensor.IpAddress ?? sensor.MacAddress ?? "");
             logger.LogInformation($"Stopped fetching from sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}");
             sensor.Fetching = false;
+            sensor.Error = true;
         }
         catch (InvalidOperationException)
         {
             OnDeviceDisconnected(sensor.IpAddress ?? sensor.MacAddress ?? "");
             logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}");
             sensor.Fetching = false;
+            sensor.Error = true;
         }
         finally
         {

@@ -23,7 +23,6 @@
                     @if (Sensors.Length > 0)
                     {
                         <MudNavGroup Title="Czujniki" Expanded="true">
-                            @* TODO change color to red if error *@
                             @foreach (var sensor in Sensors)
                             {
                                 <MudNavLink Href="@($"Device/{sensor.SensorId}")">
@@ -34,7 +33,12 @@
                                             <MudText Color="Color.Success" Typo="Typo.body2" Class="d-inline">
                                                 @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
                                             </MudText>
-
+                                        }
+                                        else if (sensor.Error)
+                                        {
+                                            <MudText Color="Color.Error" Typo="Typo.body2" Class="d-inline">
+                                                @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
+                                            </MudText>
                                         }
                                         else
                                         {
@@ -86,6 +90,8 @@
 
     private string GetIconFromRssi(Sensor sensor)
     {
+        if (sensor.Error) return "signal_wifi_off";
+
         return sensor.Rssi switch
         {
             null => "signal_wifi_off",

@@ -38,6 +38,7 @@ public class Sensor
     }
 
     [NotMapped] [JsonIgnore] public bool Fetching { get; set; }
+    [NotMapped] [JsonIgnore] public bool Error { get; set; }
     
     public event PropertyChangedEventHandler? PropertyHasChanged;
     
