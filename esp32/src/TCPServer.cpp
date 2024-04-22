@@ -7,6 +7,7 @@
 #include <Preferences.h>
 
 volatile bool timerFlag = false;
+unsigned short globalInterval;
 TCPServer *TCPServer::instance = nullptr;
 
 TCPServer::TCPServer(Sensor &sensor, unsigned short port) :
@@ -60,6 +61,7 @@ void TCPServer::handleClient(void *arg, AsyncClient *client) {
             preferences.begin("tcp");
             auto interval = preferences.getUShort("interval", 2);
             float frequency = 1.0 / interval;
+            globalInterval = interval;
             instance->timer.attachInterrupt(frequency, timerHandle);
             instance->interruptAttachedOnce = true;
         } else {
@@ -84,13 +86,13 @@ void TCPServer::loop() {
     }
 }
 
-
 bool TCPServer::sendDataToClient() {
     auto sensorData = instance->sensor.getSensorData();
     JsonDocument doc;
     doc["humidity"] = sensorData.first;
     doc["temperature"] = sensorData.second;
     doc["rssi"] = WiFi.RSSI();
+    doc["interval"] = globalInterval;
     String serialized;
     serializeJson(doc, serialized);
     for (auto client: instance->clients) {
@@ -113,7 +115,6 @@ void TCPServer::handleData(void *arg, AsyncClient *client, void *data, size_t le
     deserializeJson(doc, input);
     // no need to validate the json because even if it's invalid it doesnt throw an exception, 
     // the check for existence of a key in the document is the more important part
-    // TODO check what happens if someone sends a float
     unsigned long interval = doc["interval"];
     if (interval) {
         // need to use the esp-idf functions rather than the ones from the external library because those 
@@ -124,6 +125,7 @@ void TCPServer::handleData(void *arg, AsyncClient *client, void *data, size_t le
         Preferences preferences;
         preferences.begin("tcp");
         preferences.putUShort("interval", interval);
+        globalInterval = interval;
         log_e("Set TCP timer interval to %f", interval);
     }
 }
