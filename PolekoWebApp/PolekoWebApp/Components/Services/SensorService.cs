@@ -108,7 +108,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
     }
 
     // TODO check why it doesnt throw anything on sensor disconnect
-    private async Task ConnectToSensorAndAddReadingsToDb(Sensor sensor, CancellationToken token, int bufferSize = 32)
+    private async Task ConnectToSensorAndAddReadingsToDb(Sensor sensor, CancellationToken token, int bufferSize)
     {
         if (sensor.IpAddress is null) return;
 
@@ -123,14 +123,28 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             var buffer = new byte[1024];
             while (true)
             {
+                if (token.IsCancellationRequested) break;
                 if (sensor.TcpClient is null) break;
-                var bytesRead = await sensor.TcpClient.GetStream().ReadAsync(buffer, token);
+                int bytesRead;
+                try
+                {
+                    bytesRead = await sensor.TcpClient.GetStream().ReadAsync(buffer, 0, buffer.Length, token)
+                        .WaitAsync(TimeSpan.FromSeconds(5), token);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+                catch (TimeoutException)
+                {
+                    OnDeviceDisconnected(sensor);
+                    break;
+                }
+                
                 if (bytesRead == 0)
                 {
                     break;
                 }
-
-                if (token.IsCancellationRequested) break;
 
                 var data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
@@ -152,21 +166,21 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         }
         catch (SocketException e)
         {
-            OnDeviceDisconnected(sensor.IpAddress ?? sensor.MacAddress ?? "");
+            OnDeviceDisconnected(sensor);
             logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}\n{e.Message}");
             sensor.Fetching = false;
             sensor.Error = true;
         }
         catch (ObjectDisposedException)
         {
-            OnDeviceDisconnected(sensor.IpAddress ?? sensor.MacAddress ?? "");
+            OnDeviceDisconnected(sensor);
             logger.LogInformation($"Stopped fetching from sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}");
             sensor.Fetching = false;
             sensor.Error = true;
         }
         catch (InvalidOperationException)
         {
-            OnDeviceDisconnected(sensor.IpAddress ?? sensor.MacAddress ?? "");
+            OnDeviceDisconnected(sensor);
             logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}");
             sensor.Fetching = false;
             sensor.Error = true;
@@ -180,7 +194,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         }
     }
 
-    public async Task ConnectToSensor(Sensor sensor, CancellationToken token)
+    public async Task ConnectToSensor(Sensor sensor, CancellationToken token, int bufferSize = 32)
     {
         if (sensor.IpAddress is null)
         {
@@ -197,7 +211,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         var sensorInList = Sensors.FirstOrDefault(x => x.IpAddress == sensor.IpAddress || x.MacAddress == sensor.MacAddress);
         if (sensorInList is null) return;
         SensorsToFetch.Add(sensorInList);
-        await ConnectToSensorAndAddReadingsToDb(sensor, token, 5);
+        await ConnectToSensorAndAddReadingsToDb(sensor, token, bufferSize);
     }
 
     public async Task DisconnectFromSensor(Sensor sensor, CancellationTokenSource cancellationTokenSource)
@@ -222,7 +236,6 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 
         try
         {
-            await sensor.TcpClient.ConnectAsync(sensor.IpAddress!, 5505, token);
             var stream = sensor.TcpClient.GetStream();
             var json = $"{{\"interval\": {interval}}}";
             await stream.WriteAsync(Encoding.UTF8.GetBytes(json).ToArray(), token);
@@ -231,7 +244,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         catch (SocketException e)
         {
             logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}\n{e.Message}");
-            OnDeviceDisconnected(sensor.IpAddress!);
+            OnDeviceDisconnected(sensor);
         }
     }
 
@@ -312,9 +325,9 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             .ToArray();
     }
 
-    private void OnDeviceDisconnected(string ip)
+    private void OnDeviceDisconnected(Sensor sensor)
     {
-        var eventArgs = new DisconnectedEventArgs { Address = ip };
+        var eventArgs = new DisconnectedEventArgs { Address = GetPreferredParameter(sensor) };
         Disconnected?.Invoke(this, eventArgs);
     }
 
