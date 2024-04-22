@@ -4,13 +4,13 @@
 #include <ArduinoJson.h>
 #include <driver/timer.h>
 #include <WiFi.h>
+#include <Preferences.h>
 
 volatile bool timerFlag = false;
 TCPServer *TCPServer::instance = nullptr;
 
 TCPServer::TCPServer(Sensor &sensor, unsigned short port) :
         server(new AsyncServer(port)), sensor(sensor), timer(ESP32Timer(1)), port(port) {
-    // TODO implement singleton
     instance = this;
 }
 
@@ -56,7 +56,11 @@ void TCPServer::handleClient(void *arg, AsyncClient *client) {
 
     if (instance->clients.size() == 0) {
         if (!instance->interruptAttachedOnce) {
-            instance->timer.attachInterrupt(0.5, timerHandle);
+            Preferences preferences;
+            preferences.begin("tcp");
+            auto interval = preferences.getUShort("interval", 2);
+            float frequency = 1.0 / interval;
+            instance->timer.attachInterrupt(frequency, timerHandle);
             instance->interruptAttachedOnce = true;
         } else {
             instance->timer.reattachInterrupt();
@@ -108,15 +112,18 @@ void TCPServer::handleData(void *arg, AsyncClient *client, void *data, size_t le
     JsonDocument doc;
     deserializeJson(doc, input);
     // no need to validate the json because even if it's invalid it doesnt throw an exception, 
-    //the check for existence of a key in the document is the more important part
-    float interval = doc["interval"];
+    // the check for existence of a key in the document is the more important part
+    // TODO check what happens if someone sends a float
+    unsigned long interval = doc["interval"];
     if (interval) {
         // need to use the esp-idf functions rather than the ones from the external library because those 
         // don't work properly when you try to change the interval
-        // TODO save interval with Preferences
         timer_set_counter_value(TIMER_GROUP_0, TIMER_1, 0);
         timer_set_alarm_value(TIMER_GROUP_0, TIMER_1, interval * 1000000);
         timer_start(TIMER_GROUP_0, TIMER_1);
+        Preferences preferences;
+        preferences.begin("tcp");
+        preferences.putUShort("interval", interval);
         log_e("Set TCP timer interval to %f", interval);
     }
 }
