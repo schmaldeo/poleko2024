@@ -85,6 +85,7 @@
                     </MudItem>
                     <MudItem xs="12" Class="d-flex ">
                         <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="OpenReadings" Style="margin: auto">Historia odczytów</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshSensorIp" Style="margin: auto">Odśwież adres IP</MudButton>
                     </MudItem>
                 </MudGrid>
             </MudPaper>
@@ -103,7 +104,8 @@
 
     private async Task StartTcpClient()
     {
-        _cancellationTokenSource = new CancellationTokenSource();
+        if (_cancellationTokenSource.IsCancellationRequested)
+            _cancellationTokenSource = new CancellationTokenSource();
         if (!_eventSubscribed)
         {
             Sensor!.PropertyHasChanged += OnPropertyHasChanged;
@@ -123,6 +125,14 @@
         await SensorService.DisconnectFromSensor(Sensor!, _cancellationTokenSource);
         StateHasChanged();
     }
+
+    private async Task RefreshSensorIp()
+    {
+        if (_cancellationTokenSource.IsCancellationRequested)
+            _cancellationTokenSource = new CancellationTokenSource();
+        await SensorService.UpdateDeviceIp(Sensor!, _cancellationTokenSource.Token);
+        StateHasChanged();
+    }
     
     private async Task OpenSettings()
     {
@@ -134,8 +144,20 @@
         {
             if (result.Data is Sensor dialogSensor)
             {
+                // if DHCP was changed from false to true, remove IP address from the sensor
+                if (!Sensor!.UsesDhcp && dialogSensor.UsesDhcp)
+                {
+                    Sensor!.IpAddress = null;
+                    dialogSensor.IpAddress = null;
+                }
                 await SaveChangesToDb(dialogSensor);
-                Sensor!.FetchInterval = dialogSensor.FetchInterval;
+                if (Sensor!.FetchInterval != dialogSensor.FetchInterval && Sensor!.Fetching)
+                {
+                    if (_cancellationTokenSource.IsCancellationRequested) 
+                        _cancellationTokenSource = new CancellationTokenSource();
+                    await SensorService.ChangeInterval(Sensor!, dialogSensor.FetchInterval, _cancellationTokenSource.Token);
+                    Sensor!.FetchInterval = dialogSensor.FetchInterval;
+                }
                 Sensor!.ManuallyStartFetch = dialogSensor.ManuallyStartFetch;
                 Sensor!.UsesDhcp = dialogSensor.UsesDhcp;
                 if (!dialogSensor.UsesDhcp)
@@ -163,6 +185,7 @@
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
         var sensorInDb = await dbContext.Sensors.FindAsync(Sensor!.SensorId);
         if (sensorInDb is null) return;
+        sensorInDb.IpAddress = sensor.IpAddress;
         sensorInDb.FetchInterval = sensor.FetchInterval;
         sensorInDb.UsesDhcp = sensor.UsesDhcp;
         sensorInDb.ManuallyStartFetch = sensor.ManuallyStartFetch;

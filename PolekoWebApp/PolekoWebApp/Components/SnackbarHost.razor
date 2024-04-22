@@ -7,15 +7,22 @@
 
 @code {
     
-    private void ShowSnackbar(object? _, DisconnectedEventArgs? e)
+    private void ShowCannotConnect(object? _, DisconnectedEventArgs? e)
     {
         Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomLeft;
         Snackbar.Add($"Nie można połączyć się z {e?.Address}", Severity.Error);
     }
 
+    private void ShowMessage(object? _, SnackbarEventArgs? e)
+    {
+        Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomLeft;
+        Snackbar.Add(e?.Message);
+    }
+
     protected override void OnInitialized()
     {
-        SensorService.Disconnected += ShowSnackbar;
+        SensorService.Disconnected += ShowCannotConnect;
+        SensorService.SnackbarMessage += ShowMessage;
         base.OnInitialized();
     }
     

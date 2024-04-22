@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor;
 using PolekoWebApp.Data;
 
 namespace PolekoWebApp.Components.Services;
@@ -16,6 +17,8 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
     private bool _udpRunning;
 
     public event EventHandler<DisconnectedEventArgs>? Disconnected;
+    public event EventHandler<SnackbarEventArgs>? SnackbarMessage;
+    
 
     protected override async Task ExecuteAsync(CancellationToken token)
     {
@@ -104,6 +107,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         SensorsInNetwork = await GetSensorsFromUdp(true, token);
     }
 
+    // TODO check why it doesnt throw anything on sensor disconnect
     private async Task ConnectToSensorAndAddReadingsToDb(Sensor sensor, CancellationToken token, int bufferSize = 32)
     {
         if (sensor.IpAddress is null) return;
@@ -115,6 +119,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         {
             await sensor.TcpClient.ConnectAsync(sensor.IpAddress, 5505, token);
             sensor.Fetching = true;
+            ShowSnackbarMessage($"Połączono z czujnikiem {GetPreferredParameter(sensor)}");
             var buffer = new byte[1024];
             while (true)
             {
@@ -177,10 +182,17 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 
     public async Task ConnectToSensor(Sensor sensor, CancellationToken token)
     {
-        // TODO if dhcp
-        //  if ip is null get ip from udp
-        //  if ip is not null connect
-        //      if cannot connect try refresh ip 
+        if (sensor.IpAddress is null)
+        {
+            await UpdateDeviceIp(sensor, token);
+            if (!sensor.UsesDhcp)
+            {
+                var dbContext = await dbContextFactory.CreateDbContextAsync(token);
+                var sensorInDb = await dbContext.Sensors.FirstAsync(x => x.MacAddress == sensor.MacAddress, token);
+                sensorInDb.IpAddress = sensor.IpAddress;
+                await dbContext.SaveChangesAsync(token);
+            }
+        }
         sensor.Fetching = true;
         var sensorInList = Sensors.FirstOrDefault(x => x.IpAddress == sensor.IpAddress || x.MacAddress == sensor.MacAddress);
         if (sensorInList is null) return;
@@ -195,8 +207,49 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         sensor.TcpClient?.Close();
         sensor.TcpClient = null;
         var sensorInList = SensorsToFetch.FirstOrDefault(x => x.IpAddress == sensor.IpAddress || x.MacAddress == sensor.MacAddress);
+        ShowSnackbarMessage($"Odłączono od czujnika {GetPreferredParameter(sensor)}.", Severity.Success);
         if (sensorInList is null) return;
         SensorsToFetch.Remove(sensorInList);
+    }
+
+    public async Task ChangeInterval(Sensor sensor, int interval, CancellationToken token)
+    {
+        if (!sensor.Fetching || sensor.TcpClient is null)
+        {
+            ShowSnackbarMessage("Nie można zmienić częstotliwości bez połączenia do czujnika.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await sensor.TcpClient.ConnectAsync(sensor.IpAddress!, 5505, token);
+            var stream = sensor.TcpClient.GetStream();
+            var json = $"{{\"interval\": {interval}}}";
+            await stream.WriteAsync(Encoding.UTF8.GetBytes(json).ToArray(), token);
+            ShowSnackbarMessage($"Pomyślnie zmieniono częstotliwość czujnika {GetPreferredParameter(sensor)}");
+        }
+        catch (SocketException e)
+        {
+            logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}\n{e.Message}");
+            OnDeviceDisconnected(sensor.IpAddress!);
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="sensor"></param>
+    /// <param name="token"></param>
+    /// <returns>A boolean indicating whether the IP has changed or not</returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public async Task UpdateDeviceIp(Sensor sensor, CancellationToken token)
+    {
+        var sensors = await GetSensorsFromUdp(true, token);
+        var foundSensor = sensors.FirstOrDefault(x => x.MacAddress == sensor.MacAddress);
+        if (foundSensor is not null)
+        {
+            sensor.IpAddress = foundSensor.IpAddress;
+        }
     }
     
     public async Task<int> AddSensorToDb(Sensor sensor)
@@ -205,6 +258,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         dbContext.Sensors.Add(sensor);
         await dbContext.SaveChangesAsync();
         Sensors.Add(sensor);
+        ShowSnackbarMessage($"Pomyślnie dodano czujnik {GetPreferredParameter(sensor)}");
         return sensor.SensorId;
     }
     
@@ -220,6 +274,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         dbContext.Sensors.Add(sensor);
         await dbContext.SaveChangesAsync();
         Sensors.Add(sensor);
+        ShowSnackbarMessage($"Pomyślnie dodano czujnik {GetPreferredParameter(sensor)}");
         return sensor.SensorId;
     }
 
@@ -230,6 +285,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         SensorsToFetch.Remove(sensor);
         dbContext.Sensors.Remove(sensor);
         await dbContext.SaveChangesAsync();
+        ShowSnackbarMessage($"Pomyślnie usunięto czujnik {GetPreferredParameter(sensor)}");
     }
 
     private async Task AddReadingsToDb(List<SensorData> readings)
@@ -261,10 +317,26 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         var eventArgs = new DisconnectedEventArgs { Address = ip };
         Disconnected?.Invoke(this, eventArgs);
     }
-    
+
+    private void ShowSnackbarMessage(string message, Severity severity = Severity.Info)
+    {
+        var eventArgs = new SnackbarEventArgs { Message = message };
+        SnackbarMessage?.Invoke(this, eventArgs);
+    }
+
+    private string GetPreferredParameter(Sensor sensor)
+    {
+        return (sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? string.Empty;
+    }
 }
 
 public class DisconnectedEventArgs : EventArgs
 {
     public string? Address { get; init; }
+}
+
+public class SnackbarEventArgs : EventArgs
+{
+    public string Message { get; init; } = "";
+    public Severity Severity { get; init; } = Severity.Info;
 }
