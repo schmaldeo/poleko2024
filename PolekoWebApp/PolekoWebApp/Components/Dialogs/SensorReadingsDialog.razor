@@ -30,7 +30,7 @@
                         <Columns>
                             <TemplateColumn Title="Data" HeaderStyle="width: 25rem">
                                 <CellTemplate>
-                                    @DateTimeOffset.FromUnixTimeSeconds(context.Item.Epoch).ToLocalTime().DateTime.ToString(CultureInfo.CurrentCulture)
+                                    @GetStringFromEpoch(context.Item.Epoch)
                                 </CellTemplate>
                             </TemplateColumn>
                             <TemplateColumn Title="Temperatura">
@@ -136,16 +136,14 @@
                 Name = "Temperatura",
                 Mode = ModeFlag.Markers,
                 Y = _dataToDisplay.Select(x => (object)x.Temperature).ToList(),
-                X = _dataToDisplay.Select(x => (object)DateTimeOffset.FromUnixTimeSeconds(x.Epoch).ToLocalTime().DateTime
-                .ToString(CultureInfo.CurrentCulture)).ToArray()
+                X = _dataToDisplay.Select(x => (object)GetStringFromEpoch(x.Epoch)).ToArray()
             });
             _chartData.Add(new Scatter
             {
                 Name = "Wilgotność",
                 Mode = ModeFlag.Markers,
                 Y = _dataToDisplay.Select(x => (object)x.Humidity).ToList(),
-                X = _dataToDisplay.Select(x => (object)DateTimeOffset.FromUnixTimeSeconds(x.Epoch).ToLocalTime().DateTime
-                    .ToString(CultureInfo.CurrentCulture)).ToArray()
+                X = _dataToDisplay.Select(x => (object)GetStringFromEpoch(x.Epoch)).ToArray()
             });
             if (wasChartFilled)
             {
@@ -153,6 +151,11 @@
             }
             _fetched = true;
         }
+    }
+
+    private static string GetStringFromEpoch(long epoch)
+    {
+        return DateTimeOffset.FromUnixTimeSeconds(epoch).ToLocalTime().DateTime.ToString(CultureInfo.CurrentCulture);
     }
 
     void Close() => MudDialog.Close(DialogResult.Cancel());
@@ -178,7 +181,7 @@
         {
             if (value is long epoch)
             {
-                return DateTimeOffset.FromUnixTimeSeconds(epoch).DateTime.ToString(CultureInfo.CurrentCulture);
+                return GetStringFromEpoch(epoch);
             }
 
             return "";
