@@ -58,6 +58,7 @@ void setupIpSetup() {
         auto settings = IpSettings{paramIp, paramMask, paramGateway};
         saveIpSettings(preferences, settings);
         WiFi.config(paramIp, paramGateway, paramMask);
+        digitalWrite(LED_PIN, HIGH);
     }
 }
 
