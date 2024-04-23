@@ -34,6 +34,7 @@ void setup() {
 void loop() {
     auto buttonState = digitalRead(BOOT_BUTTON_PIN);
     if (buttonState == LOW && prevButtonState == HIGH) {
+        digitalWrite(LED_PIN, LOW);
         stopServices();
         setupIpSetup();
         startServices();
