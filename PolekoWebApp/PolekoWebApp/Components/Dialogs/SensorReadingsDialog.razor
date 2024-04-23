@@ -30,7 +30,7 @@
                         <Columns>
                             <TemplateColumn Title="Data" HeaderStyle="width: 25rem">
                                 <CellTemplate>
-                                    @DateTimeOffset.FromUnixTimeSeconds(context.Item.Epoch).DateTime.ToString(CultureInfo.CurrentCulture)
+                                    @DateTimeOffset.FromUnixTimeSeconds(context.Item.Epoch).ToLocalTime().DateTime.ToString(CultureInfo.CurrentCulture)
                                 </CellTemplate>
                             </TemplateColumn>
                             <TemplateColumn Title="Temperatura">
@@ -136,7 +136,7 @@
                 Name = "Temperatura",
                 Mode = ModeFlag.Markers,
                 Y = _dataToDisplay.Select(x => (object)x.Temperature).ToList(),
-                X = _dataToDisplay.Select(x => (object)DateTimeOffset.FromUnixTimeSeconds(x.Epoch).DateTime
+                X = _dataToDisplay.Select(x => (object)DateTimeOffset.FromUnixTimeSeconds(x.Epoch).ToLocalTime().DateTime
                 .ToString(CultureInfo.CurrentCulture)).ToArray()
             });
             _chartData.Add(new Scatter
@@ -144,7 +144,7 @@
                 Name = "Wilgotność",
                 Mode = ModeFlag.Markers,
                 Y = _dataToDisplay.Select(x => (object)x.Humidity).ToList(),
-                X = _dataToDisplay.Select(x => (object)DateTimeOffset.FromUnixTimeSeconds(x.Epoch).DateTime
+                X = _dataToDisplay.Select(x => (object)DateTimeOffset.FromUnixTimeSeconds(x.Epoch).ToLocalTime().DateTime
                     .ToString(CultureInfo.CurrentCulture)).ToArray()
             });
             if (wasChartFilled)
