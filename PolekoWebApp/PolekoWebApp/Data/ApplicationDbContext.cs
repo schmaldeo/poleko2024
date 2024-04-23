@@ -12,7 +12,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     : IdentityDbContext<ApplicationUser>(options)
 {
     public DbSet<Sensor> Sensors { get; set; }
-    public DbSet<SensorData> SensorReadings { get; set; }
+    public DbSet<SensorReading> SensorReadings { get; set; }
 }
 
 public class Sensor
@@ -25,11 +25,11 @@ public class Sensor
     [NotMapped] public int FetchInterval { get; set; }
     [NotMapped] [JsonIgnore] public int? Rssi { get; set; }
     [NotMapped] [JsonIgnore] public TcpClient? TcpClient { get; set; }
-    [JsonIgnore] public List<SensorData> Readings { get; }
-    private SensorData? _lastReading;
-    [NotMapped] [JsonIgnore] public SensorData LastReading 
+    [JsonIgnore] public List<SensorReading> Readings { get; }
+    private SensorReading? _lastReading;
+    [NotMapped] [JsonIgnore] public SensorReading LastReading 
     {
-        get => _lastReading ?? new SensorData {Humidity = 0, Temperature = 0};
+        get => _lastReading ?? new SensorReading {Humidity = 0, Temperature = 0};
         set
         {
             PropertyHasChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LastReading)));

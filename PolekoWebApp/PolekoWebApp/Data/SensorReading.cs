@@ -1,13 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-using Microsoft.EntityFrameworkCore;
 
 namespace PolekoWebApp.Data;
 
-[PrimaryKey(nameof(Epoch), nameof(SensorId))]
-public class SensorData
+public class SensorReading
 {
+    [JsonIgnore] [DatabaseGenerated(DatabaseGeneratedOption.Identity)] [Key] public int SensorReadingId { get; set; }
     [JsonPropertyName("humidity")] public float Humidity { get; set; }
     [JsonPropertyName("temperature")] public float Temperature { get; set; }
     [NotMapped] [JsonPropertyName("rssi")] public int Rssi { get; set; }

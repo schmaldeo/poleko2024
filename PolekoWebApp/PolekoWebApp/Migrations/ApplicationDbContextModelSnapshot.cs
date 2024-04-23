@@ -245,23 +245,29 @@ namespace PolekoWebApp.Migrations
                     b.ToTable("Sensors");
                 });
 
-            modelBuilder.Entity("PolekoWebApp.Data.SensorData", b =>
+            modelBuilder.Entity("PolekoWebApp.Data.SensorReading", b =>
                 {
+                    b.Property<int>("SensorReadingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("SensorReadingId"));
+
                     b.Property<long>("Epoch")
                         .HasColumnType("bigint");
-
-                    b.Property<int>("SensorId")
-                        .HasColumnType("int");
 
                     b.Property<float>("Humidity")
                         .HasColumnType("float")
                         .HasAnnotation("Relational:JsonPropertyName", "humidity");
 
+                    b.Property<int>("SensorId")
+                        .HasColumnType("int");
+
                     b.Property<float>("Temperature")
                         .HasColumnType("float")
                         .HasAnnotation("Relational:JsonPropertyName", "temperature");
 
-                    b.HasKey("Epoch", "SensorId");
+                    b.HasKey("SensorReadingId");
 
                     b.HasIndex("SensorId");
 
@@ -319,7 +325,7 @@ namespace PolekoWebApp.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("PolekoWebApp.Data.SensorData", b =>
+            modelBuilder.Entity("PolekoWebApp.Data.SensorReading", b =>
                 {
                     b.HasOne("PolekoWebApp.Data.Sensor", "Sensor")
                         .WithMany("Readings")

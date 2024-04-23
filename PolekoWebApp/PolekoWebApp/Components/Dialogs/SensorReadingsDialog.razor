@@ -93,7 +93,7 @@
     private Layout _layout = new();
     private IList<ITrace> _chartData = [];
 
-    private SensorData[]? _dataToDisplay;
+    private SensorReading[]? _dataToDisplay;
 
     private async Task SaveCsv()
     {
@@ -157,7 +157,7 @@
 
     void Close() => MudDialog.Close(DialogResult.Cancel());
 
-    private sealed class CsvMap : ClassMap<SensorData>
+    private sealed class CsvMap : ClassMap<SensorReading>
     {
         public CsvMap()
         {

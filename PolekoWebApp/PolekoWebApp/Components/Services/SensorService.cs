@@ -107,14 +107,13 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         SensorsInNetwork = await GetSensorsFromUdp(true, token);
     }
 
-    // TODO check why it doesnt throw anything on sensor disconnect
     private async Task ConnectToSensorAndAddReadingsToDb(Sensor sensor, CancellationToken token, int bufferSize)
     {
         if (sensor.IpAddress is null) return;
 
         sensor.TcpClient ??= new TcpClient();
 
-        List<SensorData> readings = [];
+        List<SensorReading> readings = [];
         try
         {
             await sensor.TcpClient.ConnectAsync(sensor.IpAddress, 5505, token);
@@ -129,7 +128,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 try
                 {
                     bytesRead = await sensor.TcpClient.GetStream().ReadAsync(buffer, 0, buffer.Length, token)
-                        .WaitAsync(TimeSpan.FromSeconds(5), token);
+                        .WaitAsync(TimeSpan.FromSeconds(15), token);
                 }
                 catch (TaskCanceledException)
                 {
@@ -148,8 +147,8 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 
                 var data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
-                var reading = JsonSerializer.Deserialize<SensorData>(data)
-                              ?? new SensorData { Temperature = 0, Humidity = 0, Rssi = 0 };
+                var reading = JsonSerializer.Deserialize<SensorReading>(data)
+                              ?? new SensorReading { Temperature = 0, Humidity = 0, Rssi = 0 };
                 reading.Epoch = DateTimeOffset.Now.ToUnixTimeSeconds();
                 reading.Sensor = sensor;
                 sensor.LastReading = reading;
@@ -301,7 +300,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         ShowSnackbarMessage($"Pomyślnie usunięto czujnik {GetPreferredParameter(sensor)}");
     }
 
-    private async Task AddReadingsToDb(List<SensorData> readings)
+    private async Task AddReadingsToDb(List<SensorReading> readings)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         Sensor? cachedSensor = null;
@@ -315,7 +314,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         await dbContext.SaveChangesAsync();
     }
 
-    public async Task<SensorData[]> GetReadingsFromDb(Sensor sensor, DateTime beginDate, DateTime endDate)
+    public async Task<SensorReading[]> GetReadingsFromDb(Sensor sensor, DateTime beginDate, DateTime endDate)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         var beginDateEpoch = ((DateTimeOffset)beginDate).ToUnixTimeSeconds();
