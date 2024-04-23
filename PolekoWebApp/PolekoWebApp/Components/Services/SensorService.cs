@@ -118,7 +118,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         {
             await sensor.TcpClient.ConnectAsync(sensor.IpAddress, 5505, token);
             sensor.Fetching = true;
-            ShowSnackbarMessage($"Połączono z czujnikiem {GetPreferredParameter(sensor)}");
+            ShowSnackbarMessage($"Połączono z czujnikiem {GetPreferredParameter(sensor)}", Severity.Success);
             var buffer = new byte[1024];
             while (true)
             {
@@ -153,6 +153,8 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 reading.Sensor = sensor;
                 sensor.LastReading = reading;
                 sensor.Rssi = reading.Rssi;
+                if (reading.Interval != sensor.FetchInterval)
+                    sensor.FetchInterval = reading.Interval;
                 readings.Add(reading);
                 if (readings.Count != bufferSize) continue;
                 await AddReadingsToDb(readings);
@@ -238,7 +240,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             var stream = sensor.TcpClient.GetStream();
             var json = $"{{\"interval\": {interval}}}";
             await stream.WriteAsync(Encoding.UTF8.GetBytes(json).ToArray(), token);
-            ShowSnackbarMessage($"Pomyślnie zmieniono częstotliwość czujnika {GetPreferredParameter(sensor)}");
+            ShowSnackbarMessage($"Pomyślnie zmieniono częstotliwość czujnika {GetPreferredParameter(sensor)}", Severity.Success);
         }
         catch (SocketException e)
         {
@@ -270,7 +272,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         dbContext.Sensors.Add(sensor);
         await dbContext.SaveChangesAsync();
         Sensors.Add(sensor);
-        ShowSnackbarMessage($"Pomyślnie dodano czujnik {GetPreferredParameter(sensor)}");
+        ShowSnackbarMessage($"Pomyślnie dodano czujnik {GetPreferredParameter(sensor)}", Severity.Success);
         return sensor.SensorId;
     }
     
@@ -286,7 +288,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         dbContext.Sensors.Add(sensor);
         await dbContext.SaveChangesAsync();
         Sensors.Add(sensor);
-        ShowSnackbarMessage($"Pomyślnie dodano czujnik {GetPreferredParameter(sensor)}");
+        ShowSnackbarMessage($"Pomyślnie dodano czujnik {GetPreferredParameter(sensor)}", Severity.Success);
         return sensor.SensorId;
     }
 
@@ -297,7 +299,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         SensorsToFetch.Remove(sensor);
         dbContext.Sensors.Remove(sensor);
         await dbContext.SaveChangesAsync();
-        ShowSnackbarMessage($"Pomyślnie usunięto czujnik {GetPreferredParameter(sensor)}");
+        ShowSnackbarMessage($"Pomyślnie usunięto czujnik {GetPreferredParameter(sensor)}", Severity.Success);
     }
 
     private async Task AddReadingsToDb(List<SensorReading> readings)
@@ -332,7 +334,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 
     private void ShowSnackbarMessage(string message, Severity severity = Severity.Info)
     {
-        var eventArgs = new SnackbarEventArgs { Message = message };
+        var eventArgs = new SnackbarEventArgs { Message = message, Severity = severity};
         SnackbarMessage?.Invoke(this, eventArgs);
     }
 

@@ -15,8 +15,9 @@
 
     private void ShowMessage(object? _, SnackbarEventArgs? e)
     {
+        if (e is null) return;
         Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomLeft;
-        Snackbar.Add(e?.Message);
+        Snackbar.Add(e.Message, e.Severity);
     }
 
     protected override void OnInitialized()
