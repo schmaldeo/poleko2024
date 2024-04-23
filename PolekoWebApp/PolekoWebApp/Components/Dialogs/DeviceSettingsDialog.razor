@@ -1,6 +1,8 @@
 ﻿@using PolekoWebApp.Data
 @using System.Text.RegularExpressions
+@using System.Net
 @inject IDialogService DialogService
+@inject ILogger<DeviceSettingsDialog> Logger
 
 <MudDialogProvider />
 <MudDialog>
@@ -12,13 +14,11 @@
     </TitleContent>
     <DialogContent>
         <MudItem>
-            Częstotliwość odczytów
-            <MudNumericField T="int" @bind-Value="_sensorCopy.FetchInterval"/>
+            <MudNumericField T="int" @bind-Value="_sensorCopy.FetchInterval" Min="0" Label="Częstotliwość odczytów"/>
         </MudItem>
         <MudItem>
-            @* TODO make sure validation works *@
-            <MudTextField @bind-Value="_sensorCopy.IpAddress" Validation="IpAddressValidation" Disabled="_sensorCopy.UsesDhcp"
-                          Label="Adres IP"/>
+            <MudTextField @bind-Value="_sensorCopy.IpAddress" @ref="_ipField" Validation="IpAddressValidation" 
+                          Disabled="_sensorCopy.UsesDhcp" Label="Adres IP"/>
         </MudItem>
         <MudItem Class="d-flex flex-row align-center mt-2">
             <MudCheckBox Color="Color.Primary" @bind-Value="_sensorCopy.UsesDhcp" Style="margin-left: -1rem;"/>
@@ -43,10 +43,23 @@
 
     [Parameter] public Sensor Sensor { get; set; } = null!;
     private Sensor _sensorCopy = null!;
+    private MudTextField<string> _ipField;
 
-    private void Submit()
+    private async Task Submit()
     {
-        MudDialog.Close(DialogResult.Ok(_sensorCopy));
+        await _ipField.Validate();
+        // skip IP field validation if DHCP is used
+        if (!_sensorCopy.UsesDhcp)
+        {
+            if (!_ipField.HasErrors)
+            {
+                MudDialog.Close(DialogResult.Ok(_sensorCopy));
+            }            
+        }
+        else
+        {
+            MudDialog.Close(DialogResult.Ok(_sensorCopy));
+        }
     }
         
     private void Cancel() => MudDialog.Cancel();
@@ -60,12 +73,7 @@
     }
     
     private IEnumerable<string> IpAddressValidation(string ip)
-    {
-        // accept empty field because we want to allow the form to be submitted with only one field filled out
-        if (string.IsNullOrWhiteSpace(ip))
-        {
-            yield break;
-        }
+    { 
         if (!Regex.IsMatch(ip, @"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"))
             yield return "Nieprawidłowy adres IP";
     }
