@@ -131,7 +131,7 @@ void TCPServer::handleData(void *arg, AsyncClient *client, void *data, size_t le
 }
 
 void TCPServer::handleError(void *arg, AsyncClient *client, int8_t error) {
-    Serial.println("error");
+    log_e("There has been an error in %s", client->remoteIP());
 }
 
 void TCPServer::handleDisconnect(void *arg, AsyncClient *client) {
