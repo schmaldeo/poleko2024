@@ -127,8 +127,9 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 int bytesRead;
                 try
                 {
+                    // 15 seconds timeout
                     bytesRead = await sensor.TcpClient.GetStream().ReadAsync(buffer, 0, buffer.Length, token)
-                        .WaitAsync(TimeSpan.FromSeconds(15), token);
+                        .WaitAsync(TimeSpan.FromSeconds(sensor.FetchInterval + 15), token);
                 }
                 catch (TaskCanceledException)
                 {
@@ -231,7 +232,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
     {
         if (!sensor.Fetching || sensor.TcpClient is null)
         {
-            ShowSnackbarMessage("Nie można zmienić częstotliwości bez połączenia do czujnika.", Severity.Warning);
+            ShowSnackbarMessage("Nie można zmienić częstotliwości bez połączenia z czujnikiem.", Severity.Warning);
             return;
         }
 
