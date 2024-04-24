@@ -26,6 +26,9 @@ public class Sensor
     [NotMapped] [JsonIgnore] public int? Rssi { get; set; }
     [NotMapped] [JsonIgnore] public TcpClient? TcpClient { get; set; }
     [JsonIgnore] public List<SensorReading> Readings { get; }
+    
+    // all the PropertyHasChanged invoking is made so that the NavMenu knows when to rerender to change the sensor
+    // status colour
     private SensorReading? _lastReading;
     [NotMapped] [JsonIgnore] public SensorReading LastReading 
     {
@@ -37,8 +40,31 @@ public class Sensor
         }
     }
 
-    [NotMapped] [JsonIgnore] public bool Fetching { get; set; }
-    [NotMapped] [JsonIgnore] public bool Error { get; set; }
+    private bool _fetching;
+    [NotMapped]
+    [JsonIgnore]
+    public bool Fetching
+    {
+        get => _fetching;
+        set
+        {
+            PropertyHasChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Fetching)));
+            _fetching = value;
+        }
+    }
+
+    private bool _error;
+    [NotMapped]
+    [JsonIgnore]
+    public bool Error
+    {
+        get => _error;
+        set
+        {
+            PropertyHasChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Error)));
+            _error = value;
+        }
+    }
     
     public event PropertyChangedEventHandler? PropertyHasChanged;
     
