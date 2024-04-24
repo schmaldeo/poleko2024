@@ -22,7 +22,7 @@
 
     protected override void OnInitialized()
     {
-        SensorService.Disconnected += ShowCannotConnect;
+        SensorService.DeviceDisconnected += ShowCannotConnect;
         SensorService.SnackbarMessage += ShowMessage;
         base.OnInitialized();
     }

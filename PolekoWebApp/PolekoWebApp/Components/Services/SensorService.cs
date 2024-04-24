@@ -16,7 +16,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
     private UdpClient? _udpClient;
     private bool _udpRunning;
 
-    public event EventHandler<DisconnectedEventArgs>? Disconnected;
+    public event EventHandler<DisconnectedEventArgs>? DeviceDisconnected;
     public event EventHandler<SnackbarEventArgs>? SnackbarMessage;
     
 
@@ -105,6 +105,15 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
     public async Task RefreshSensorsInNetwork(CancellationToken token)
     {
         SensorsInNetwork = await GetSensorsFromUdp(true, token);
+        // refresh sensors' IP address, basically like calling UpdateDeviceIp()
+        foreach (var networkSensor in SensorsInNetwork)
+        {
+            var localSensor = Sensors.FirstOrDefault(x => x.MacAddress == networkSensor.MacAddress);
+            if (localSensor is not null)
+            {
+                localSensor.IpAddress = networkSensor.IpAddress;
+            }
+        }
     }
 
     private async Task ConnectToSensorAndAddReadingsToDb(Sensor sensor, CancellationToken token, int bufferSize)
@@ -118,6 +127,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         {
             await sensor.TcpClient.ConnectAsync(sensor.IpAddress, 5505, token);
             sensor.Fetching = true;
+            sensor.Error = false;
             ShowSnackbarMessage($"Połączono z czujnikiem {GetPreferredParameter(sensor)}", Severity.Success);
             var buffer = new byte[1024];
             while (true)
@@ -137,8 +147,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 }
                 catch (TimeoutException)
                 {
-                    OnDeviceDisconnected(sensor);
-                    break;
+                    throw new SocketException();
                 }
                 
                 if (bytesRead == 0)
@@ -200,6 +209,10 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
     {
         if (sensor.IpAddress is null)
         {
+            if (SensorsInNetwork.Contains(sensor))
+            {
+                
+            }
             await UpdateDeviceIp(sensor, token);
             if (!sensor.UsesDhcp)
             {
@@ -249,14 +262,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             OnDeviceDisconnected(sensor);
         }
     }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="sensor"></param>
-    /// <param name="token"></param>
-    /// <returns>A boolean indicating whether the IP has changed or not</returns>
-    /// <exception cref="NotImplementedException"></exception>
+    
     public async Task UpdateDeviceIp(Sensor sensor, CancellationToken token)
     {
         var sensors = await GetSensorsFromUdp(true, token);
@@ -330,7 +336,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
     private void OnDeviceDisconnected(Sensor sensor)
     {
         var eventArgs = new DisconnectedEventArgs { Address = GetPreferredParameter(sensor) };
-        Disconnected?.Invoke(this, eventArgs);
+        DeviceDisconnected?.Invoke(this, eventArgs);
     }
 
     private void ShowSnackbarMessage(string message, Severity severity = Severity.Info)
