@@ -32,6 +32,7 @@
             }
             @if (Sensors.Count > 0)
             {
+                <MudText Typo="Typo.body1" Class="align-self-center">Czujniki w sieci</MudText>
                 <MudDataGrid Items="Sensors" T="Sensor" RowClick="OnRowClick" RowStyle="cursor: pointer;" Class="ma-3" Elevation="3" Dense="true">
                     <Columns>
                         <PropertyColumn Property="x => x.IpAddress" Title="IP" role="button"/>
