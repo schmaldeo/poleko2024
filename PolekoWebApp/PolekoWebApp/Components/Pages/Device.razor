@@ -151,7 +151,7 @@
                     dialogSensor.IpAddress = null;
                 }
                 await SaveChangesToDb(dialogSensor);
-                if (Sensor!.FetchInterval != dialogSensor.FetchInterval && Sensor!.Fetching)
+                if (Sensor!.FetchInterval != dialogSensor.FetchInterval)
                 {
                     // the interval doesn't change if the TCP connection is not already established (e.g. fetching)
                     // but we're calling ChangeInterval anyway because it shows a snackbar message explaining why the
