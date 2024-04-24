@@ -1,6 +1,5 @@
 ﻿@using PolekoWebApp.Data
 @using System.Text.RegularExpressions
-@using System.Net
 @inject IDialogService DialogService
 @inject ILogger<DeviceSettingsDialog> Logger
 
@@ -14,7 +13,7 @@
     </TitleContent>
     <DialogContent>
         <MudItem>
-            <MudNumericField T="int" @bind-Value="_sensorCopy.FetchInterval" Min="0" Label="Częstotliwość odczytów"/>
+            <MudNumericField T="int" @bind-Value="_sensorCopy.FetchInterval" Min="0" Label="Częstotliwość odczytów (sekundy)"/>
         </MudItem>
         <MudItem>
             <MudTextField @bind-Value="_sensorCopy.IpAddress" @ref="_ipField" Validation="IpAddressValidation" 
