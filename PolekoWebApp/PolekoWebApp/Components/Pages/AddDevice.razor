@@ -18,9 +18,9 @@
     <MudPaper Class="pa-4">
         <h3>Dodaj czujnik</h3>
         <MudForm @ref="_form" Class="d-flex flex-column">
-            <MudTextField T="string" Label="Adres IP" @bind-Value="IpAddress"
+            <MudTextField T="string?" Label="Adres IP" @bind-Value="IpAddress"
                           Validation="@(new Func<string, IEnumerable<string>>(IpAddressValidation))"/>
-            <MudTextField T="string" Label="Adres MAC" @bind-Value="MacAddress"
+            <MudTextField T="string?" Label="Adres MAC" @bind-Value="MacAddress"
                           Validation="@(new Func<string, IEnumerable<string>>(MacAddressValidation))" Class="mb-4"/>
 
             @if (!_listeningStopped)
