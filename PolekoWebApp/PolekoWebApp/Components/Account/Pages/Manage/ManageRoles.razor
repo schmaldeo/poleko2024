@@ -43,12 +43,13 @@ else
 
 @code {
     private MudDataGrid<UserRole> _dataGrid;
-    private readonly List<UserRole> _users = [];
+    private List<UserRole>? _users;
 
     protected override async Task OnInitializedAsync()
     {
         foreach (var user in UserManager.Users.ToArray())
         {
+            var users = new List<UserRole>();
             var roles = await UserManager.GetRolesAsync(user);
             string role;
             if (roles.Contains("SuperAdmin"))
@@ -64,7 +65,8 @@ else
                 role = "User";
             }
 
-            _users.Add(new UserRole { User = user, Role = role });
+            users.Add(new UserRole { User = user, Role = role });
+            _users = users;
         }
 
         await base.OnInitializedAsync();
@@ -89,6 +91,7 @@ else
         public string Role { get; set; }
     }
 
+    // sorts in this order: SuperAdmin, Admin, User
     private class RoleComparer : IComparer<object>
     {
         public int Compare(object? a, object? b)

@@ -6,7 +6,7 @@
 
 @code {
 
-    private void ShowCannotConnect(object? _, DisconnectedEventArgs? e)
+    private void ShowCannotConnect(object? _, ConnectionLostEventArgs? e)
     {
         Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomLeft;
         Snackbar.Add($"Nie można połączyć się z {e?.Address}", Severity.Error);
@@ -21,7 +21,7 @@
 
     protected override void OnInitialized()
     {
-        SensorService.DeviceDisconnected += ShowCannotConnect;
+        SensorService.DeviceConnectionLost += ShowCannotConnect;
         SensorService.SnackbarMessage += ShowMessage;
         base.OnInitialized();
     }

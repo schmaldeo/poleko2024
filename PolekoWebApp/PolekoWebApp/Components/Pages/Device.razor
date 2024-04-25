@@ -99,7 +99,7 @@
     private Sensor? Sensor { get; set; }
     private CancellationTokenSource _cancellationTokenSource = new();
     private bool _eventSubscribed;
-
+    
     private async Task StartTcpClient()
     {
         if (_cancellationTokenSource.IsCancellationRequested)

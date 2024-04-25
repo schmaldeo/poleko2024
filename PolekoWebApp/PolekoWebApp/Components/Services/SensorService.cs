@@ -13,14 +13,29 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 {
     private UdpClient? _udpClient;
     private bool _udpRunning;
+    /// <summary>
+    ///     Contains sensors saved in the database. 
+    /// </summary>
     public List<Sensor> Sensors { get; private set; } = [];
+    /// <summary>
+    ///     Contains sensors detected in the network.
+    /// </summary>
     public List<Sensor> SensorsInNetwork { get; private set; } = [];
+    /// <summary>
+    ///     Contains sensors that are currently being monitored.
+    /// </summary>
     private List<Sensor> SensorsToFetch { get; set; } = [];
 
-    public event EventHandler<DisconnectedEventArgs>? DeviceDisconnected;
+    /// <summary>
+    ///     Triggered when a device loses connection.
+    /// </summary>
+    public event EventHandler<ConnectionLostEventArgs>? DeviceConnectionLost;
+    /// <summary>
+    ///     Triggered when the service wants to show a snackbar.
+    /// </summary>
     public event EventHandler<SnackbarEventArgs>? SnackbarMessage;
-
-
+    
+    /// <inheritdoc cref="ExecuteAsync"/> 
     protected override async Task ExecuteAsync(CancellationToken token)
     {
         Sensors = await GetSensorsFromDb();
@@ -52,12 +67,24 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         await Task.WhenAll(tasks);
     }
 
+    /// <summary>
+    ///     Gets sensors from the database.
+    /// </summary>
+    /// <returns>List of sensors from the database.</returns>
     private async Task<List<Sensor>> GetSensorsFromDb()
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
         return await dbContext.Sensors.ToListAsync();
     }
 
+    /// <summary>
+    ///     Detects sensors in the network.
+    /// </summary>
+    /// <param name="allowAlreadyAdded">
+    ///     Determines whether the returned list should contain sensors that are already in <see cref="Sensors"/>
+    /// </param>
+    /// <param name="token">CancellationToken</param>
+    /// <returns>List of sensors detected in the network.</returns>
     private async Task<List<Sensor>> GetSensorsFromUdp(bool allowAlreadyAdded, CancellationToken token)
     {
         if (_udpRunning) await Task.Delay(TimeSpan.FromSeconds(5), token);
@@ -103,6 +130,10 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         return sensorsFound;
     }
 
+    /// <summary>
+    ///     Updates <see cref="SensorsInNetwork"/> and updates IP addresses of sensors in <see cref="Sensors"/>.
+    /// </summary>
+    /// <param name="token">CancellationToken</param>
     public async Task RefreshSensorsInNetwork(CancellationToken token)
     {
         SensorsInNetwork = await GetSensorsFromUdp(true, token);
@@ -114,6 +145,12 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         }
     }
 
+    /// <summary>
+    ///     Establishes a TCP connection with a sensor, reads the data the sensor sends and adds them to the database.
+    /// </summary>
+    /// <param name="sensor"><see cref="Sensor"/> to connect to</param>
+    /// <param name="token">CancellationToken</param>
+    /// <param name="bufferSize">Size of the buffer of sensor readings</param>
     private async Task ConnectToSensorAndAddReadingsToDb(Sensor sensor, CancellationToken token, int bufferSize)
     {
         if (sensor.IpAddress is null) return;
@@ -175,21 +212,21 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         }
         catch (SocketException e)
         {
-            OnDeviceDisconnected(sensor);
+            OnDeviceConnectionLost(sensor);
             logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}\n{e.Message}");
             sensor.Fetching = false;
             sensor.Error = true;
         }
         catch (ObjectDisposedException)
         {
-            OnDeviceDisconnected(sensor);
+            OnDeviceConnectionLost(sensor);
             logger.LogInformation($"Stopped fetching from sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}");
             sensor.Fetching = false;
             sensor.Error = true;
         }
         catch (InvalidOperationException)
         {
-            OnDeviceDisconnected(sensor);
+            OnDeviceConnectionLost(sensor);
             logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}");
             sensor.Fetching = false;
             sensor.Error = true;
@@ -203,14 +240,17 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         }
     }
 
+    /// <summary>
+    ///     Connects to a sensor to read data and add it to the database.
+    /// </summary>
+    /// <param name="sensor">Sensor to connect to</param>
+    /// <param name="token">CancellationToken</param>
+    /// <param name="bufferSize">Size of the buffer of sensor readings</param>
     public async Task ConnectToSensor(Sensor sensor, CancellationToken token, int bufferSize = 32)
     {
+        // if ip is null, update the IP, then if the sensor doesn't use DHCP also update its IP
         if (sensor.IpAddress is null)
         {
-            if (SensorsInNetwork.Contains(sensor))
-            {
-            }
-
             await UpdateDeviceIp(sensor, token);
             if (!sensor.UsesDhcp)
             {
@@ -229,6 +269,11 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         await ConnectToSensorAndAddReadingsToDb(sensor, token, bufferSize);
     }
 
+    /// <summary>
+    ///     Disconnects from a sensor and sets its TcpClient property to null.
+    /// </summary>
+    /// <param name="sensor">Sensor to disconnect from</param>
+    /// <param name="cancellationTokenSource"><see cref="CancellationTokenSource"/></param>
     public async Task DisconnectFromSensor(Sensor sensor, CancellationTokenSource cancellationTokenSource)
     {
         sensor.Fetching = false;
@@ -242,6 +287,12 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         SensorsToFetch.Remove(sensorInList);
     }
 
+    /// <summary>
+    ///     Changes the interval in which the sensor sends the data to a connected TCP client.
+    /// </summary>
+    /// <param name="sensor">Sensor whose interval to change</param>
+    /// <param name="interval">New interval</param>
+    /// <param name="token">CancellationToken</param>
     public async Task ChangeInterval(Sensor sensor, int interval, CancellationToken token)
     {
         if (!sensor.Fetching || sensor.TcpClient is null)
@@ -261,10 +312,15 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         catch (SocketException e)
         {
             logger.LogError($"Cannot connect to sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}\n{e.Message}");
-            OnDeviceDisconnected(sensor);
+            OnDeviceConnectionLost(sensor);
         }
     }
 
+    /// <summary>
+    ///     Updates sensor's IP in <see cref="Sensors"/> if it's detected in the network
+    /// </summary>
+    /// <param name="sensor">Sensor whose IP to update</param>
+    /// <param name="token">CancellationToken</param>
     public async Task UpdateDeviceIp(Sensor sensor, CancellationToken token)
     {
         var sensors = await GetSensorsFromUdp(true, token);
@@ -272,6 +328,11 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         if (foundSensor is not null) sensor.IpAddress = foundSensor.IpAddress;
     }
 
+    /// <summary>
+    ///     Adds a sensor to the database.
+    /// </summary>
+    /// <param name="sensor">Sensor to add</param>
+    /// <returns>SensorId in the database</returns>
     public async Task<int> AddSensorToDb(Sensor sensor)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -282,6 +343,12 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         return sensor.SensorId;
     }
 
+    /// <summary>
+    ///     Adds a sensor to the database.
+    /// </summary>
+    /// <param name="ip">IP address of the sensor</param>
+    /// <param name="mac">MAC address of the sensor</param>
+    /// <returns>SensorId in the database</returns>
     public async Task<int> AddSensorToDb(string? ip, string? mac)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -298,6 +365,10 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         return sensor.SensorId;
     }
 
+    /// <summary>
+    ///     Removes a sensor from the database.
+    /// </summary>
+    /// <param name="sensor">Sensor to remove</param>
     public async Task RemoveSensorFromDb(Sensor sensor)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -308,6 +379,10 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         ShowSnackbarMessage($"Pomyślnie usunięto czujnik {GetPreferredParameter(sensor)}", Severity.Success);
     }
 
+    /// <summary>
+    ///     Adds a <see cref="List{T}"/> of <see cref="SensorReading"/> to the database.
+    /// </summary>
+    /// <param name="readings"><see cref="List{T}"/> of <see cref="SensorReading"/></param>
     private async Task AddReadingsToDb(List<SensorReading> readings)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -323,6 +398,13 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         await dbContext.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// Retrieves sensor readings from the database within a specified date range.
+    /// </summary>
+    /// <param name="sensor">The sensor for which to retrieve readings.</param>
+    /// <param name="beginDate">The start date of the range.</param>
+    /// <param name="endDate">The end date of the range.</param>
+    /// <returns>An array of SensorReading objects that fall within the specified date range for the given sensor.</returns>
     public async Task<SensorReading[]> GetReadingsFromDb(Sensor sensor, DateTime beginDate, DateTime endDate)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -333,25 +415,39 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             .ToArray();
     }
 
-    private void OnDeviceDisconnected(Sensor sensor)
+    /// <summary>
+    ///     Invokes the <see cref="DeviceConnectionLost"/> event.
+    /// </summary>
+    /// <param name="sensor">Sensor which lost connection</param>
+    private void OnDeviceConnectionLost(Sensor sensor)
     {
-        var eventArgs = new DisconnectedEventArgs { Address = GetPreferredParameter(sensor) };
-        DeviceDisconnected?.Invoke(this, eventArgs);
+        var eventArgs = new ConnectionLostEventArgs { Address = GetPreferredParameter(sensor) };
+        DeviceConnectionLost?.Invoke(this, eventArgs);
     }
 
+    /// <summary>
+    ///     Invokes the <see cref="SnackbarMessage"/> event.
+    /// </summary>
+    /// <param name="message">Message to display in the snackbar</param>
+    /// <param name="severity">Snackbar severity</param>
     private void ShowSnackbarMessage(string message, Severity severity = Severity.Info)
     {
         var eventArgs = new SnackbarEventArgs { Message = message, Severity = severity };
         SnackbarMessage?.Invoke(this, eventArgs);
     }
 
+    /// <summary>
+    ///     Gets either the MAC or IP address depending on usage of DHCP.
+    /// </summary>
+    /// <param name="sensor">Sensor whose parameters to display</param>
+    /// <returns>MAC or IP address</returns>
     private string GetPreferredParameter(Sensor sensor)
     {
         return (sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? string.Empty;
     }
 }
 
-public class DisconnectedEventArgs : EventArgs
+public class ConnectionLostEventArgs : EventArgs
 {
     public string? Address { get; init; }
 }

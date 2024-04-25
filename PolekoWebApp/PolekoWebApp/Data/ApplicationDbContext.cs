@@ -17,9 +17,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 public class Sensor
 {
     private bool _error;
-
     private bool _fetching;
-    
     private SensorReading? _lastReading;
     [JsonIgnore] public int SensorId { get; set; }
     [JsonPropertyName("ip")] public string? IpAddress { get; set; }

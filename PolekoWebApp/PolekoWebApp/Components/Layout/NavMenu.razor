@@ -108,7 +108,8 @@
     protected override async Task OnInitializedAsync()
     {
         Sensors = SensorService.Sensors.ToArray();
-        // every rerender the navbar every time new reading is fetched to get fresh WiFi status
+        // rerender the navbar every time new reading is fetched or either Error or Fetching properties change
+        // to get it to display the current status
         foreach (var sensor in Sensors)
         {
             sensor.PropertyHasChanged += SensorPropertyChangedHandler;
