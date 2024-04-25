@@ -43,11 +43,10 @@ else
 
 @code {
     private MudDataGrid<UserRole>? _dataGrid;
-    private List<UserRole>? _users;
+    private readonly List<UserRole> _users = [];
 
     protected override async Task OnInitializedAsync()
     {
-        var users = new List<UserRole>();
         foreach (var user in UserManager.Users.ToArray())
         {
             var roles = await UserManager.GetRolesAsync(user);
@@ -55,7 +54,7 @@ else
             if (roles.Contains("SuperAdmin"))
             {
                 role = "SuperAdmin";
-            }
+            } 
             else if (roles.Contains("Admin"))
             {
                 role = "Admin";
@@ -64,11 +63,8 @@ else
             {
                 role = "User";
             }
-
-            users.Add(new UserRole { User = user, Role = role });
-            _users = users;
+            _users.Add(new UserRole { User = user, Role = role });
         }
-
         await base.OnInitializedAsync();
     }
 
