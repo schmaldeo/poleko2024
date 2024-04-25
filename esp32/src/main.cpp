@@ -26,13 +26,15 @@ void stopServices();
 
 void setup() {
     setupSerial();
-    // this blocks because config portal blocks
+    // this call can potentially block the thread, because the configPortal blocks
     setupWiFi();
     startServices();
 }
 
+// DO NOT USE ANY FUNCTION THAT DELAYS THE EXECUTION OF CODE INSIDE THIS FUNCTION!!!
 void loop() {
     auto buttonState = digitalRead(BOOT_BUTTON_PIN);
+    // if the BOOT button was pressed, set up the configuration portal
     if (buttonState == LOW && prevButtonState == HIGH) {
         digitalWrite(LED_PIN, LOW);
         stopServices();
@@ -40,29 +42,34 @@ void loop() {
         startServices();
     }
     prevButtonState = buttonState;
+    // if WiFi disconnected, turn the LED off and set up the configuration portal
     if (WiFi.status() != WL_CONNECTED) {
         digitalWrite(LED_PIN, LOW);
         stopServices();
         setupIpSetup();
         startServices();
     }
+
+    // server code
     udpServer.loop();
     tcpServer.loop();
     httpServer.loop();
 }
 
 
-/// @brief Sets up UART with PC through USB
+/// @brief Sets up USB UART connection
 void setupSerial() {
     Serial.begin(9600);
 }
 
+/// @brief Starts servers
 void startServices() {
     tcpServer.setup();
     udpServer.setup();
     httpServer.setup();
 }
 
+/// @brief Stops servers
 void stopServices() {
     tcpServer.stop();
     udpServer.stop();

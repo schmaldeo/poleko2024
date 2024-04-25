@@ -6,9 +6,10 @@
 
 bool initialWiFiSetupOver = false;
 
+/// @brief Sets up sensor's WiFi connection. Gets saved IP preferences and tries to connect to a saved access point if there is such.
+/// If it cannot connect to the saved AP, opens a configuration portal.
 void setupWiFi() {
-    Preferences preferences;
-    auto ipSettings = getSavedIpSettings(preferences);
+    auto ipSettings = getSavedIpSettings();
     WiFi.config(ipSettings.ip, ipSettings.defaultGateway, ipSettings.subnetMask);
     pinMode(LED_PIN, OUTPUT);
     WiFiManager wm;
@@ -23,9 +24,9 @@ void setupWiFi() {
     }
 }
 
+/// @brief Sets up the network configuration portal on which you can change the current WiFi and network parameters.
 void setupIpSetup() {
-    Preferences preferences;
-    auto prefSettings = getSavedIpSettings(preferences);
+    auto prefSettings = getSavedIpSettings();
 
     WiFiManager wm;
     wm.setCountry("PL");
@@ -56,13 +57,16 @@ void setupIpSetup() {
     if ((prefSettings.ip != paramIp) || (prefSettings.defaultGateway != paramGateway) ||
         (prefSettings.subnetMask != paramMask)) {
         auto settings = IpSettings{paramIp, paramMask, paramGateway};
-        saveIpSettings(preferences, settings);
+        saveIpSettings(settings);
         WiFi.config(paramIp, paramGateway, paramMask);
         digitalWrite(LED_PIN, HIGH);
     }
 }
 
-IpSettings getSavedIpSettings(Preferences &preferences) {
+/// @brief Gets network parameters saved in microcontroller's flash memory.
+/// @return IpSettings struct containing network parameters.
+IpSettings getSavedIpSettings() {
+    Preferences preferences;
     preferences.begin("ipSettings");
     auto prefIp = preferences.getString("ip", "");
     IPAddress ip;
@@ -76,7 +80,10 @@ IpSettings getSavedIpSettings(Preferences &preferences) {
     return IpSettings{ip, mask, gateway};
 }
 
-void saveIpSettings(Preferences &preferences, IpSettings &settings) {
+/// @brief Saves network parameters to microcontroller's flash memory.
+/// @param settings Settings to save
+void saveIpSettings(IpSettings &settings) {
+    Preferences preferences;
     preferences.begin("ipSettings");
     preferences.putString("ip", settings.ip.toString());
     preferences.putString("mask", settings.subnetMask.toString());
@@ -88,6 +95,8 @@ IPAddressParameter::IPAddressParameter(const char *id, const char *placeholder, 
     init(id, placeholder, address.toString().c_str(), 16, "", WFM_LABEL_BEFORE);
 }
 
+/// @brief Gets IP address from the parameter.
+/// @return IP entered in the input or IPAddress(0u), which can set DHCP up if all 3 parameters are set to it
 IPAddress IPAddressParameter::getValue() {
     IPAddress ip;
     Serial.println(WiFiManagerParameter::getValue());
@@ -99,6 +108,8 @@ IPAddress IPAddressParameter::getValue() {
     return ip;
 }
 
+/// @brief Checks whether the entered IP address is valid
+/// @return Boolean indicating whether the address is valid or not
 bool IPAddressParameter::isValid() {
     IPAddress ip;
     return ip.fromString(WiFiManagerParameter::getValue());

@@ -21,6 +21,8 @@ TCPServer::~TCPServer() {
     }
 }
 
+/// @brief Sets up a TCP server periodically sending sensor readings to connected clients.
+/// Must be used in the setup() function in main.cpp. You must also include the TCPServer::loop() function in loop() in main.cpp.
 void TCPServer::setup() {
     if (started) {
         return;
@@ -35,6 +37,7 @@ void TCPServer::setup() {
     log_e("TCP set up");
 }
 
+/// @brief Stops the TCP server.
 void TCPServer::stop() {
     if (stopped) {
         return;
@@ -52,9 +55,11 @@ void TCPServer::stop() {
     log_e("TCP stopped");
 }
 
+/// @brief Client handler
 void TCPServer::handleClient(void *arg, AsyncClient *client) {
     log_e("new client has been connected to server, ip: %s", client->remoteIP().toString());
 
+    // attach a timer interrupt with saved frequency or reattach it if it was attached once and then detached due to no clients connected
     if (instance->clients.size() == 0) {
         if (!instance->interruptAttachedOnce) {
             Preferences preferences;
@@ -77,6 +82,8 @@ void TCPServer::handleClient(void *arg, AsyncClient *client) {
     client->onTimeout(&handleTimeout, nullptr);
 }
 
+/// @brief Listens for timer flag changes. Must be used in loop() function in main.cpp. You must also include 
+/// the TCPServer::setup() function in setup() in main.cpp.
 void TCPServer::loop() {
     if (!instance->stopped) {
         if (timerFlag) {
@@ -86,6 +93,7 @@ void TCPServer::loop() {
     }
 }
 
+/// @brief Sends current sensor reading (temperature, humidity) along with RSSI and TCP timer interval to all connected clients. 
 bool TCPServer::sendDataToClient() {
     auto sensorData = instance->sensor.getSensorData();
     JsonDocument doc;
@@ -109,6 +117,7 @@ bool TCPServer::timerHandle(void *_) {
     return true;
 }
 
+/// @brief Checks if client requested an interval change, in which case change it
 void TCPServer::handleData(void *arg, AsyncClient *client, void *data, size_t len) {
     auto input = static_cast<char *>(data);
     JsonDocument doc;

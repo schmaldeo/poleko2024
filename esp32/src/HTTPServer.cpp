@@ -3,6 +3,8 @@
 
 HTTPServer::HTTPServer(Sensor &sensor) : server(WiFiServer(80)), sensor(sensor) {}
 
+/// @brief Sets up a simple HTTP server that returns a JSON document containing sensor's IP and MAC addresses as well as RSSI to every request.
+/// Must be used in the setup() function in main.cpp. You must also include the HTTPServer::loop() function in loop() in main.cpp.
 void HTTPServer::setup() {
     if (started) {
         return;
@@ -13,6 +15,7 @@ void HTTPServer::setup() {
     log_e("HTTP set up");
 }
 
+/// @brief Stops the HTTP server.
 void HTTPServer::stop() {
     if (stopped) {
         return;
@@ -23,6 +26,8 @@ void HTTPServer::stop() {
     log_e("HTTP stopped");
 }
 
+/// @brief Listens for clients. Must be used in loop() function in main.cpp. You must also include 
+/// the HTTPServer::setup() function in setup() in main.cpp.
 void HTTPServer::loop() {
     if (stopped) {
         return;

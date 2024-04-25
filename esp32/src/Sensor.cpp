@@ -14,6 +14,8 @@ std::pair<float, float> Sensor::getSensorData() {
     return processSensorData(rawSensorResponse);
 }
 
+/// @brief Gets data from the sensor and parses it into a JSON string
+/// @return JSON string containing current sensor reading.
 String Sensor::getJsonString() {
     auto data = getSensorData();
     JsonDocument doc;
