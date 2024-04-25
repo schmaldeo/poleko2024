@@ -3,7 +3,7 @@
 @inject IDialogService DialogService
 @inject ILogger<DeviceSettingsDialog> Logger
 
-<MudDialogProvider />
+<MudDialogProvider/>
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
@@ -16,7 +16,7 @@
             <MudNumericField T="int" @bind-Value="_sensorCopy.FetchInterval" Min="0" Label="Częstotliwość odczytów (sekundy)"/>
         </MudItem>
         <MudItem>
-            <MudTextField @bind-Value="_sensorCopy.IpAddress" @ref="_ipField" Validation="IpAddressValidation" 
+            <MudTextField @bind-Value="_sensorCopy.IpAddress" @ref="_ipField" Validation="IpAddressValidation"
                           Disabled="_sensorCopy.UsesDhcp" Label="Adres IP"/>
         </MudItem>
         <MudItem Class="d-flex flex-row align-center mt-2">
@@ -53,26 +53,29 @@
             if (!_ipField.HasErrors)
             {
                 MudDialog.Close(DialogResult.Ok(_sensorCopy));
-            }            
+            }
         }
         else
         {
             MudDialog.Close(DialogResult.Ok(_sensorCopy));
         }
     }
-        
-    private void Cancel() => MudDialog.Cancel();
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
 
     private async Task Delete()
     {
         var dialog = await DialogService.ShowAsync<AreYouSureDialog>();
         var result = await dialog.Result;
-        
+
         if (!result.Canceled) MudDialog.Close(DialogResult.Ok(false));
     }
-    
+
     private IEnumerable<string> IpAddressValidation(string ip)
-    { 
+    {
         if (!Regex.IsMatch(ip, @"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"))
             yield return "Nieprawidłowy adres IP";
     }
@@ -90,4 +93,5 @@
         };
         base.OnInitialized();
     }
+
 }

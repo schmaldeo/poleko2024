@@ -1,7 +1,8 @@
 ﻿@using PolekoWebApp.Components.Account.Shared
+@using PolekoWebApp.Components.Layout
 <Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)">
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
             <NotAuthorized>
                 <RedirectToLogin/>
             </NotAuthorized>

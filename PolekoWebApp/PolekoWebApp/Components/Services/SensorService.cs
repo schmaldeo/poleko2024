@@ -8,17 +8,18 @@ using PolekoWebApp.Data;
 
 namespace PolekoWebApp.Components.Services;
 
-public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFactory, ILogger<SensorService> logger) : BackgroundService
+public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFactory, ILogger<SensorService> logger)
+    : BackgroundService
 {
+    private UdpClient? _udpClient;
+    private bool _udpRunning;
     public List<Sensor> Sensors { get; private set; } = [];
     public List<Sensor> SensorsInNetwork { get; private set; } = [];
     private List<Sensor> SensorsToFetch { get; set; } = [];
-    private UdpClient? _udpClient;
-    private bool _udpRunning;
 
     public event EventHandler<DisconnectedEventArgs>? DeviceDisconnected;
     public event EventHandler<SnackbarEventArgs>? SnackbarMessage;
-    
+
 
     protected override async Task ExecuteAsync(CancellationToken token)
     {
@@ -27,22 +28,21 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         // find IPs of sensors that use DHCP/don't have an IP address saved in the database
         var sensorsWithMacOnly = Sensors.Where(x => x.IpAddress is null).ToArray();
         if (sensorsWithMacOnly.Length != 0)
-        { 
+        {
             SensorsInNetwork = await GetSensorsFromUdp(false, token);
-            var foundSensors = SensorsInNetwork.Where(udp => sensorsWithMacOnly.Any(x => udp.MacAddress == x.MacAddress)).ToList();
+            var foundSensors = SensorsInNetwork
+                .Where(udp => sensorsWithMacOnly.Any(x => udp.MacAddress == x.MacAddress)).ToList();
             foreach (var sensor in foundSensors)
             {
                 var sensorInList = Sensors.First(x => x.MacAddress == sensor.MacAddress);
                 sensorInList.IpAddress = sensor.IpAddress;
             }
         }
+
         SensorsToFetch = Sensors.Where(x => x.ManuallyStartFetch == false).ToList();
 
         List<Task> tasks = [];
-        foreach (var sensor in SensorsToFetch)
-        {
-            tasks.Add(ConnectToSensorAndAddReadingsToDb(sensor, token, 10));
-        }
+        foreach (var sensor in SensorsToFetch) tasks.Add(ConnectToSensorAndAddReadingsToDb(sensor, token, 10));
 
         // refresh sensors from UDP every 5 minutes. better than having it done on client request because in case of
         // heavy traffic it would take ages for some clients to get the return value of that function
@@ -60,10 +60,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 
     private async Task<List<Sensor>> GetSensorsFromUdp(bool allowAlreadyAdded, CancellationToken token)
     {
-        if (_udpRunning)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(5), token);
-        }
+        if (_udpRunning) await Task.Delay(TimeSpan.FromSeconds(5), token);
 
         _udpRunning = true;
         _udpClient = new UdpClient();
@@ -80,10 +77,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 var device = JsonSerializer.Deserialize<Sensor>(resultStr)!;
                 if (!allowAlreadyAdded)
                 {
-                    if (!Sensors.Contains(device))
-                    {
-                        sensorsFound.Add(device);
-                    }
+                    if (!Sensors.Contains(device)) sensorsFound.Add(device);
                 }
                 else
                 {
@@ -91,14 +85,21 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 }
             }
         }
-        catch (IOException e) when (e.InnerException is SocketException { SocketErrorCode: SocketError.OperationAborted }) { }
-        catch (OperationCanceledException) { }
+        catch (IOException e) when (e.InnerException is SocketException
+                                    {
+                                        SocketErrorCode: SocketError.OperationAborted
+                                    })
+        {
+        }
+        catch (OperationCanceledException)
+        {
+        }
         finally
         {
             _udpClient.Close();
             _udpRunning = false;
         }
-        
+
         return sensorsFound;
     }
 
@@ -109,10 +110,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         foreach (var networkSensor in SensorsInNetwork)
         {
             var localSensor = Sensors.FirstOrDefault(x => x.MacAddress == networkSensor.MacAddress);
-            if (localSensor is not null)
-            {
-                localSensor.IpAddress = networkSensor.IpAddress;
-            }
+            if (localSensor is not null) localSensor.IpAddress = networkSensor.IpAddress;
         }
     }
 
@@ -149,11 +147,8 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 {
                     throw new SocketException();
                 }
-                
-                if (bytesRead == 0)
-                {
-                    break;
-                }
+
+                if (bytesRead == 0) break;
 
                 var data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
@@ -171,7 +166,10 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 readings.Clear();
             }
         }
-        catch (IOException e) when (e.InnerException is SocketException { SocketErrorCode: SocketError.OperationAborted })
+        catch (IOException e) when (e.InnerException is SocketException
+                                    {
+                                        SocketErrorCode: SocketError.OperationAborted
+                                    })
         {
             logger.LogError($"Stopped fetching from sensor {sensor.IpAddress ?? sensor.MacAddress ?? ""}\n{e.Message}");
         }
@@ -211,8 +209,8 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         {
             if (SensorsInNetwork.Contains(sensor))
             {
-                
             }
+
             await UpdateDeviceIp(sensor, token);
             if (!sensor.UsesDhcp)
             {
@@ -222,8 +220,10 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
                 await dbContext.SaveChangesAsync(token);
             }
         }
+
         sensor.Fetching = true;
-        var sensorInList = Sensors.FirstOrDefault(x => x.IpAddress == sensor.IpAddress || x.MacAddress == sensor.MacAddress);
+        var sensorInList =
+            Sensors.FirstOrDefault(x => x.IpAddress == sensor.IpAddress || x.MacAddress == sensor.MacAddress);
         if (sensorInList is null) return;
         SensorsToFetch.Add(sensorInList);
         await ConnectToSensorAndAddReadingsToDb(sensor, token, bufferSize);
@@ -235,7 +235,8 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         await cancellationTokenSource.CancelAsync();
         sensor.TcpClient?.Close();
         sensor.TcpClient = null;
-        var sensorInList = SensorsToFetch.FirstOrDefault(x => x.IpAddress == sensor.IpAddress || x.MacAddress == sensor.MacAddress);
+        var sensorInList =
+            SensorsToFetch.FirstOrDefault(x => x.IpAddress == sensor.IpAddress || x.MacAddress == sensor.MacAddress);
         ShowSnackbarMessage($"Odłączono od czujnika {GetPreferredParameter(sensor)}.", Severity.Success);
         if (sensorInList is null) return;
         SensorsToFetch.Remove(sensorInList);
@@ -254,7 +255,8 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             var stream = sensor.TcpClient.GetStream();
             var json = $"{{\"interval\": {interval}}}";
             await stream.WriteAsync(Encoding.UTF8.GetBytes(json).ToArray(), token);
-            ShowSnackbarMessage($"Pomyślnie zmieniono częstotliwość czujnika {GetPreferredParameter(sensor)}", Severity.Success);
+            ShowSnackbarMessage($"Pomyślnie zmieniono częstotliwość czujnika {GetPreferredParameter(sensor)}",
+                Severity.Success);
         }
         catch (SocketException e)
         {
@@ -262,17 +264,14 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             OnDeviceDisconnected(sensor);
         }
     }
-    
+
     public async Task UpdateDeviceIp(Sensor sensor, CancellationToken token)
     {
         var sensors = await GetSensorsFromUdp(true, token);
         var foundSensor = sensors.FirstOrDefault(x => x.MacAddress == sensor.MacAddress);
-        if (foundSensor is not null)
-        {
-            sensor.IpAddress = foundSensor.IpAddress;
-        }
+        if (foundSensor is not null) sensor.IpAddress = foundSensor.IpAddress;
     }
-    
+
     public async Task<int> AddSensorToDb(Sensor sensor)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -282,7 +281,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         ShowSnackbarMessage($"Pomyślnie dodano czujnik {GetPreferredParameter(sensor)}", Severity.Success);
         return sensor.SensorId;
     }
-    
+
     public async Task<int> AddSensorToDb(string? ip, string? mac)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -320,6 +319,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
             reading.Sensor = cachedSensor;
             dbContext.SensorReadings.Add(reading);
         }
+
         await dbContext.SaveChangesAsync();
     }
 
@@ -341,7 +341,7 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
 
     private void ShowSnackbarMessage(string message, Severity severity = Severity.Info)
     {
-        var eventArgs = new SnackbarEventArgs { Message = message, Severity = severity};
+        var eventArgs = new SnackbarEventArgs { Message = message, Severity = severity };
         SnackbarMessage?.Invoke(this, eventArgs);
     }
 

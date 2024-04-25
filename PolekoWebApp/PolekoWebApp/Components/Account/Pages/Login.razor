@@ -1,9 +1,8 @@
 ﻿@page "/Account/Login"
-
-@using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
-@using Microsoft.AspNetCore.Identity
 @using PolekoWebApp.Data
+@using Microsoft.AspNetCore.Identity
+@using System.ComponentModel.DataAnnotations
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
@@ -38,13 +37,13 @@
             </div>
             <div class="d-flex mb-3 mt-2">
                 <label class="align-self-center">
-                    <InputCheckbox @bind-Value="Input.RememberMe" />
-                  <span style="font-size: 1rem;">Zapamiętaj mnie</span>
+                    <InputCheckbox @bind-Value="Input.RememberMe"/>
+                    <span style="font-size: 1rem;">Zapamiętaj mnie</span>
                 </label>
                 <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Zaloguj</MudButton>
             </div>
             <MudLink Href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Zarejestruj się</MudLink>
-        </EditForm>            
+        </EditForm>
     </MudPaper>
 </MudItem>
 
@@ -68,7 +67,7 @@
 
     public async Task LoginUser()
     {
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, false);
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
@@ -90,4 +89,5 @@
 
         [Display(Name = "Remember me?")] public bool RememberMe { get; set; }
     }
+
 }

@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
 using PolekoWebApp.Components;
 using PolekoWebApp.Components.Account;
-using PolekoWebApp.Data;
-using MudBlazor.Services;
 using PolekoWebApp.Components.Services;
+using PolekoWebApp.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,7 +60,7 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseExceptionHandler("/Error", true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }

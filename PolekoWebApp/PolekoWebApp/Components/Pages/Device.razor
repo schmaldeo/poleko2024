@@ -1,101 +1,99 @@
 ﻿@rendermode InteractiveServer
 @page "/device/{id}"
-@attribute [Authorize]
-
 @using PolekoWebApp.Data
-@using Microsoft.EntityFrameworkCore
-@using PolekoWebApp.Components.Dialogs
-@using PolekoWebApp.Components.Services
 @using System.ComponentModel
+@using Microsoft.EntityFrameworkCore
+@using PolekoWebApp.Components.Services
+@using PolekoWebApp.Components.Dialogs
+@attribute [Authorize]
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
 @inject IDialogService DialogService
 @inject SensorService SensorService
 @inject NavigationManager NavigationManager
 
 
-<MudDialogProvider />
+<MudDialogProvider/>
 <PageTitle>@(Sensor is null ? "Błąd" : $"{(Sensor.UsesDhcp ? Sensor.MacAddress : Sensor.IpAddress) ?? Sensor.MacAddress}")</PageTitle>
 
 <MudItem sm="5" Class="ma-auto">
-        @if (Sensor is null)
+    @if (Sensor is null)
+    {
+        @if (Error)
         {
-            @if (Error)
-            {
-                <h1>Czujnik o podanym ID nie istnieje</h1>
-            }
-            else
-            {
-                <span>Ładowanie...</span>
-                <br/>
-                <MudProgressCircular Color="Color.Primary" Size="Size.Large" Class="ma-auto" Indeterminate="true"/>
-            }
+            <h1>Czujnik o podanym ID nie istnieje</h1>
         }
         else
         {
-            <MudPaper Class="pa-4">
-                <MudGrid Justify="Justify.Center" Spacing="4">
-                    <MudItem xs="3"/>
-                    <MudItem xs="6" Class="d-flex align-center">
-                        <h2 style="text-align: center" class="ma-auto">@((Sensor.UsesDhcp ? Sensor.MacAddress : Sensor.IpAddress) ?? Sensor.MacAddress)</h2>
-                    </MudItem>
-                    <MudItem xs="3" Class="d-flex justify-end">
-                        @* only show settings to admin and superadmin *@
-                        <AuthorizeView Roles="Admin, SuperAdmin">
-                            <Authorized>
-                                <MudIconButton Icon="@Icons.Material.Filled.Settings" aria-label="settings"
-                                               OnClick="OpenSettings"/>
-                            </Authorized>
-                        </AuthorizeView>
-                        @if (!Sensor.ManuallyStartFetch && Sensor.Fetching)
+            <span>Ładowanie...</span>
+            <br/>
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Class="ma-auto" Indeterminate="true"/>
+        }
+    }
+    else
+    {
+        <MudPaper Class="pa-4">
+            <MudGrid Justify="Justify.Center" Spacing="4">
+                <MudItem xs="3"/>
+                <MudItem xs="6" Class="d-flex align-center">
+                    <h2 style="text-align: center" class="ma-auto">@((Sensor.UsesDhcp ? Sensor.MacAddress : Sensor.IpAddress) ?? Sensor.MacAddress)</h2>
+                </MudItem>
+                <MudItem xs="3" Class="d-flex justify-end">
+                    @* only show settings to admin and superadmin *@
+                    <AuthorizeView Roles="Admin, SuperAdmin">
+                        <Authorized>
+                            <MudIconButton Icon="@Icons.Material.Filled.Settings" aria-label="settings"
+                                           OnClick="OpenSettings"/>
+                        </Authorized>
+                    </AuthorizeView>
+                    @if (!Sensor.ManuallyStartFetch && Sensor.Fetching)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Large"
+                                       Color="Color.Error"
+                                       Disabled="true"
+                                       aria-label="stop fetching"/>
+                    }
+                    else
+                    {
+                        @if (!Sensor.Fetching)
                         {
-                            <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Large"
-                                           Color="Color.Error"
-                                           Disabled="true"
-                                           aria-label="stop fetching"/>
+                            <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Large"
+                                           Color="Color.Tertiary"
+                                           aria-label="start fetching"
+                                           OnClick="StartTcpClient"/>
                         }
                         else
                         {
-                            @if (!Sensor.Fetching)
-                            {
-                                <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Large"
-                                               Color="Color.Tertiary"
-                                               aria-label="start fetching"
-                                               OnClick="StartTcpClient"/>
-                            }
-                            else
-                            {
-                                <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Large"
-                                               Color="Color.Error"
-                                               aria-label="stop fetching"
-                                               OnClick="StopTcpClient"/>
-                            }
+                            <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Large"
+                                           Color="Color.Error"
+                                           aria-label="stop fetching"
+                                           OnClick="StopTcpClient"/>
                         }
-                    </MudItem>
-                    <MudItem>
-                        <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
-                            <h3>Temperatura</h3>
-                            <span style="font-size: 1.5rem">@Sensor.LastReading.Temperature.ToString("0.00")</span>
-                        </MudPaper>
-                    </MudItem>
-                    <MudItem>
-                        <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
-                            <h3>Wilgotność</h3>
-                            <span style="font-size: 1.5rem">@Sensor.LastReading.Humidity.ToString("0.00")</span>
-                        </MudPaper>
-                    </MudItem>
-                    <MudItem xs="12" Class="d-flex ">
-                        <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="OpenReadings" Class="mr-2 ml-auto">Historia odczytów</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshSensorIp" Class="ml-2 mr-auto">Odśwież adres IP</MudButton>
-                    </MudItem>
-                </MudGrid>
-            </MudPaper>
-        }
+                    }
+                </MudItem>
+                <MudItem>
+                    <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
+                        <h3>Temperatura</h3>
+                        <span style="font-size: 1.5rem">@Sensor.LastReading.Temperature.ToString("0.00")</span>
+                    </MudPaper>
+                </MudItem>
+                <MudItem>
+                    <MudPaper Height="90px" Width="140px" Class="d-flex flex-column justify-center align-center pa-3" Elevation="3">
+                        <h3>Wilgotność</h3>
+                        <span style="font-size: 1.5rem">@Sensor.LastReading.Humidity.ToString("0.00")</span>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" Class="d-flex ">
+                    <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="OpenReadings" Class="mr-2 ml-auto">Historia odczytów</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RefreshSensorIp" Class="ml-2 mr-auto">Odśwież adres IP</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
 </MudItem>
 
 
 @code {
-    [Parameter]
-    public string? Id { get; set; }
+    [Parameter] public string? Id { get; set; }
 
     private bool Error { get; set; }
     private Sensor? Sensor { get; set; }
@@ -111,6 +109,7 @@
             Sensor!.PropertyHasChanged += OnPropertyHasChanged;
             _eventSubscribed = true;
         }
+
         await SensorService.ConnectToSensor(Sensor!, _cancellationTokenSource.Token);
         StateHasChanged();
     }
@@ -122,6 +121,7 @@
             Sensor!.PropertyHasChanged -= OnPropertyHasChanged;
             _eventSubscribed = false;
         }
+
         await SensorService.DisconnectFromSensor(Sensor!, _cancellationTokenSource);
         StateHasChanged();
     }
@@ -133,7 +133,7 @@
         await SensorService.UpdateDeviceIp(Sensor!, _cancellationTokenSource.Token);
         StateHasChanged();
     }
-    
+
     private async Task OpenSettings()
     {
         var parameters = new DialogParameters<DeviceSettingsDialog> { { x => x.Sensor, Sensor } };
@@ -150,13 +150,14 @@
                     Sensor!.IpAddress = null;
                     dialogSensor.IpAddress = null;
                 }
+
                 await SaveChangesToDb(dialogSensor);
                 if (Sensor!.FetchInterval != dialogSensor.FetchInterval)
                 {
                     // the interval doesn't change if the TCP connection is not already established (e.g. fetching)
                     // but we're calling ChangeInterval anyway because it shows a snackbar message explaining why the
                     // operation cannot be performed
-                    if (_cancellationTokenSource.IsCancellationRequested) 
+                    if (_cancellationTokenSource.IsCancellationRequested)
                         _cancellationTokenSource = new CancellationTokenSource();
                     await SensorService.ChangeInterval(Sensor!, dialogSensor.FetchInterval, _cancellationTokenSource.Token);
                     if (Sensor!.Fetching)
@@ -164,12 +165,14 @@
                         Sensor!.FetchInterval = dialogSensor.FetchInterval;
                     }
                 }
+
                 Sensor!.ManuallyStartFetch = dialogSensor.ManuallyStartFetch;
                 Sensor!.UsesDhcp = dialogSensor.UsesDhcp;
                 if (!dialogSensor.UsesDhcp)
                 {
                     Sensor!.IpAddress = dialogSensor.IpAddress;
                 }
+
                 StateHasChanged();
             }
             else
@@ -227,6 +230,7 @@
         {
             Error = true;
         }
+
         await base.OnInitializedAsync();
     }
 

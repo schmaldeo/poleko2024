@@ -1,9 +1,9 @@
 ﻿@rendermode InteractiveServer
 @page "/Account/Manage/ManageRoles"
-@using Microsoft.AspNetCore.Identity
 @using PolekoWebApp.Data
+@using Microsoft.AspNetCore.Identity
 
-@attribute [Authorize(Roles="SuperAdmin")]
+@attribute [Authorize(Roles = "SuperAdmin")]
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager NavigationManager
 
@@ -19,8 +19,8 @@ else
 {
     <MudDataGrid @ref="_dataGrid" Items="_users" Groupable="false" Filterable="false" Dense="true">
         <Columns>
-            <PropertyColumn Property="x => x.User.Email" />
-            <PropertyColumn Property="x => x.Role" Title="Uprawnienia" Comparer="new RoleComparer()" />
+            <PropertyColumn Property="x => x.User.Email"/>
+            <PropertyColumn Property="x => x.Role" Title="Uprawnienia" Comparer="new RoleComparer()"/>
             <TemplateColumn>
                 <CellTemplate>
                     @if (context.Item?.Role == "User")
@@ -44,7 +44,7 @@ else
 @code {
     private MudDataGrid<UserRole> _dataGrid;
     private readonly List<UserRole> _users = [];
-    
+
     protected override async Task OnInitializedAsync()
     {
         foreach (var user in UserManager.Users.ToArray())
@@ -54,7 +54,7 @@ else
             if (roles.Contains("SuperAdmin"))
             {
                 role = "SuperAdmin";
-            } 
+            }
             else if (roles.Contains("Admin"))
             {
                 role = "Admin";
@@ -63,8 +63,10 @@ else
             {
                 role = "User";
             }
+
             _users.Add(new UserRole { User = user, Role = role });
         }
+
         await base.OnInitializedAsync();
     }
 
@@ -74,7 +76,7 @@ else
         NavigationManager.NavigateTo("/Account/Manage/ManageRoles", true);
     }
 
-    
+
     private async Task RemoveFromAdmin(ApplicationUser user)
     {
         await UserManager.RemoveFromRoleAsync(user, "Admin");
@@ -104,7 +106,7 @@ else
             return 0;
         }
     }
-    
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
@@ -114,4 +116,5 @@ else
             await _dataGrid.SetSortAsync(nameof(UserRole.Role), SortDirection.Descending, x => x.Role, new RoleComparer());
         }
     }
+
 }

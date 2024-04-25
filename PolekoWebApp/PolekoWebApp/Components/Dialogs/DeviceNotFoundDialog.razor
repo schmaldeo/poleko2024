@@ -4,7 +4,7 @@
             <MudIcon Icon="@Icons.Material.Filled.QuestionMark" Class="mr-3 mb-n1"/>
             Błąd
         </MudText>
-        </TitleContent>
+    </TitleContent>
     <DialogContent>
         Nie wykryto urządzenia o podanych parametrach w sieci. Czy chcesz je dodać mimo to?
     </DialogContent>
@@ -17,7 +17,14 @@
 @code {
     [CascadingParameter] MudDialogInstance MudDialog { get; set; }
 
-    void Submit() => MudDialog.Close(DialogResult.Ok(true));
-    void Cancel() => MudDialog.Cancel();
-}
+    void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
 
+    void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+}

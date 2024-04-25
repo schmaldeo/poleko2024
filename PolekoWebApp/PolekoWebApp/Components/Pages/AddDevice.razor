@@ -1,19 +1,19 @@
 ﻿@rendermode InteractiveServer
 @page "/Device/Add"
-@attribute [Authorize(Roles="SuperAdmin, Admin")]
+@attribute [Authorize(Roles = "SuperAdmin, Admin")]
 
-@implements IDisposable
-@using System.Text.RegularExpressions
-@using PolekoWebApp.Components.Dialogs
+@using PolekoWebApp.Data
 @using PolekoWebApp.Components.Services
-@using PolekoWebApp.Data;
+@using PolekoWebApp.Components.Dialogs
+@using System.Text.RegularExpressions
+@implements IDisposable
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
 @inject SensorService SensorService
 
 <PageTitle>Dodaj nowe czujniki</PageTitle>
 
-<MudDialogProvider />
+<MudDialogProvider/>
 <MudItem sm="5" Class="ma-auto">
     <MudPaper Class="pa-4">
         <h3>Dodaj czujnik</h3>
@@ -62,7 +62,7 @@
     public string? MacAddress { get; set; }
     private List<Sensor> Sensors { get; set; } = [];
 
-    private CancellationTokenSource _cancellationTokenSource = new();
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private bool _listeningStopped;
     private MudForm _form;
 
@@ -82,7 +82,7 @@
         if (!string.IsNullOrWhiteSpace(ip) && !string.IsNullOrWhiteSpace(mac))
         {
             sensorInDb = SensorService.Sensors.FirstOrDefault(x => x.IpAddress == IpAddress || x.MacAddress == MacAddress);
-        } 
+        }
         else if (string.IsNullOrWhiteSpace(ip) && !string.IsNullOrWhiteSpace(mac))
         {
             sensorInDb = SensorService.Sensors.FirstOrDefault(x => x.MacAddress == MacAddress);
@@ -91,11 +91,13 @@
         {
             sensorInDb = SensorService.Sensors.FirstOrDefault(x => x.IpAddress == IpAddress);
         }
+
         if (sensorInDb is null)
         {
             sensor = new Sensor();
             return false;
         }
+
         sensor = sensorInDb;
         return true;
     }
@@ -104,7 +106,7 @@
     {
         NavigationManager.NavigateTo($"Device/{sensorId}", forceLoad);
     }
-    
+
     private async Task Submit()
     {
         var isIpEmpty = string.IsNullOrWhiteSpace(IpAddress);
@@ -118,11 +120,12 @@
                 // find the sensor with this MAC among the sensors found in the network
                 sensor = Sensors.FirstOrDefault(x => x.MacAddress == MacAddress!.Trim());
             }
+
             if (!isIpEmpty)
             {
                 sensor = Sensors.FirstOrDefault(x => x.IpAddress == IpAddress!.Trim());
             }
-            
+
             // if the sensor doesn't match any of the ones found in network
             if (sensor is null)
             {
@@ -153,7 +156,6 @@
                     NavigateToSensor(id, true);
                 }
             }
-
         }
     }
 
@@ -162,7 +164,7 @@
         IpAddress = args.Item.IpAddress!;
         MacAddress = args.Item.MacAddress!;
     }
-    
+
     private IEnumerable<string> IpAddressValidation(string ip)
     {
         // accept empty field because we want to allow the form to be submitted with only one field filled out
@@ -170,10 +172,11 @@
         {
             yield break;
         }
+
         if (!Regex.IsMatch(ip, @"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$"))
             yield return "Nieprawidłowy adres IP";
     }
-    
+
     private IEnumerable<string> MacAddressValidation(string mac)
     {
         // same case as in IpAddressValidation
@@ -181,6 +184,7 @@
         {
             yield break;
         }
+
         if (!Regex.IsMatch(mac, "^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$"))
             yield return "Nieprawidłowy adres MAC";
     }
@@ -193,6 +197,7 @@
             _listeningStopped = true;
             StateHasChanged();
         }
+
         await base.OnAfterRenderAsync(firstRender);
     }
 

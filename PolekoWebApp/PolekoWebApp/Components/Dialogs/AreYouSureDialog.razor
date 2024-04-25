@@ -4,7 +4,7 @@
             <MudIcon Icon="@Icons.Material.Filled.QuestionMark" Class="mr-3 mb-n1"/>
             Czy jesteś pewien?
         </MudText>
-        </TitleContent>
+    </TitleContent>
     <DialogContent>
         Czy na pewno chcesz usunąć ten czujnik?
     </DialogContent>
@@ -17,6 +17,14 @@
 @code {
     [CascadingParameter] MudDialogInstance MudDialog { get; set; }
 
-    void Submit() => MudDialog.Close(DialogResult.Ok(true));
-    void Cancel() => MudDialog.Cancel();
+    void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
 }

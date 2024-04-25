@@ -1,12 +1,11 @@
-﻿@rendermode InteractiveServer
-
-@using PolekoWebApp.Components.Services
+﻿@using PolekoWebApp.Components.Services
+@rendermode InteractiveServer
 @inject ISnackbar Snackbar
 @inject ILogger<SnackbarHost> Logger
 @inject SensorService SensorService
 
 @code {
-    
+
     private void ShowCannotConnect(object? _, DisconnectedEventArgs? e)
     {
         Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomLeft;
@@ -26,5 +25,5 @@
         SensorService.SnackbarMessage += ShowMessage;
         base.OnInitialized();
     }
-    
+
 }

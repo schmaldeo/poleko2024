@@ -10,7 +10,7 @@ public static class IdentityDataInitializer
         foreach (var roleName in Roles)
         {
             if (await roleManager.RoleExistsAsync(roleName)) continue;
-            var role = new IdentityRole {Name=roleName};
+            var role = new IdentityRole { Name = roleName };
             await roleManager.CreateAsync(role);
         }
     }
@@ -18,9 +18,6 @@ public static class IdentityDataInitializer
     public static async Task RemoveUsers(UserManager<ApplicationUser> userManager)
     {
         var users = userManager.Users.ToList();
-        foreach (var user in users)
-        {
-            await userManager.DeleteAsync(user);
-        }
+        foreach (var user in users) await userManager.DeleteAsync(user);
     }
 }

@@ -1,16 +1,15 @@
-﻿@rendermode InteractiveServer
-@using System.IO;
-@using PolekoWebApp.Data
-@using PolekoWebApp.Components.Services
+﻿@using PolekoWebApp.Data
+@using Stream = System.IO.Stream
 @using Plotly.Blazor
 @using Plotly.Blazor.Traces
-@using System.Globalization
 @using Plotly.Blazor.Traces.ScatterLib
-@using CsvHelper
+@using PolekoWebApp.Components.Services
 @using CsvHelper.Configuration
-@using System.ComponentModel
-@using System.Text
 @using CsvHelper.TypeConversion
+@using CsvHelper
+@using System.Text
+@using System.Globalization
+@rendermode InteractiveServer
 @inject SensorService SensorService
 @inject IJSRuntime JS
 
@@ -83,13 +82,13 @@
     [Parameter] public Sensor Sensor { get; set; } = null!;
 
     private bool _fetched;
-    
+
     // need to set the type of these to String and then parse to DateTime because the input doesn't want to work
     // properly with DateTime directly
     private string? BeginDate { get; set; }
     private string? EndDate { get; set; }
     private PlotlyChart _chart;
-    private Config _config = new() {Responsive = true};
+    private Config _config = new() { Responsive = true };
     private Layout _layout = new();
     private IList<ITrace> _chartData = [];
 
@@ -100,16 +99,16 @@
         var stream = GetStream();
         var fileName = "dane.csv";
 
-        using var streamRef = new DotNetStreamReference(stream: stream);
+        using var streamRef = new DotNetStreamReference(stream);
 
         await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
         await stream.DisposeAsync();
     }
 
-    private System.IO.Stream GetStream()
+    private Stream GetStream()
     {
         var memoryStream = new MemoryStream();
-        using var writer = new StreamWriter(memoryStream, encoding: Encoding.UTF8, leaveOpen: true);
+        using var writer = new StreamWriter(memoryStream, Encoding.UTF8, leaveOpen: true);
         using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
         csv.Context.RegisterClassMap<CsvMap>();
         csv.WriteRecords(_dataToDisplay);
@@ -131,6 +130,7 @@
                 _chartData.Clear();
                 wasChartFilled = true;
             }
+
             _chartData.Add(new Scatter
             {
                 Name = "Temperatura",
@@ -149,6 +149,7 @@
             {
                 await _chart.React();
             }
+
             _fetched = true;
         }
     }
@@ -158,7 +159,10 @@
         return DateTimeOffset.FromUnixTimeSeconds(epoch).ToLocalTime().DateTime.ToString(CultureInfo.CurrentCulture);
     }
 
-    void Close() => MudDialog.Close(DialogResult.Cancel());
+    void Close()
+    {
+        MudDialog.Close(DialogResult.Cancel());
+    }
 
     private sealed class CsvMap : ClassMap<SensorReading>
     {
@@ -169,7 +173,7 @@
             Map(m => m.Humidity).Index(1).Name("Wilgotność");
         }
     }
-    
+
     public class EpochToStringConverter : ITypeConverter
     {
         public object ConvertFromString(string text, IReaderRow row, MemberMapData memberMapData)
@@ -187,4 +191,5 @@
             return "";
         }
     }
+
 }

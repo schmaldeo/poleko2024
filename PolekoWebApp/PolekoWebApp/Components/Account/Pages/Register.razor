@@ -1,9 +1,8 @@
 ﻿@page "/Account/Register"
-
-@using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Identity
 @using PolekoWebApp.Data
+@using System.ComponentModel.DataAnnotations
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IUserStore<ApplicationUser> UserStore
@@ -33,7 +32,7 @@
                 <div class="mud-input-control-input-container">
                     <div class="mud-input mud-input-text mud-input-underline">
                         <InputText type="password" @bind-Value="Input.Password" class="mud-input-slot mud-input-root mud-input-root-text" autocomplete="new-password" aria-required="true" placeholder="Hasło"/>
-                        <ValidationMessage For="() => Input.Password" class="text-danger"/> 
+                        <ValidationMessage For="() => Input.Password" class="text-danger"/>
                     </div>
                 </div>
             </div>
@@ -68,7 +67,7 @@
         var user = CreateUser();
 
         await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-        
+
         var emailStore = GetEmailStore();
         await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
         var result = await UserManager.CreateAsync(user, Input.Password);
@@ -97,7 +96,7 @@
 
         Logger.LogInformation("User created a new account with password.");
 
-        await SignInManager.SignInAsync(user, isPersistent: false);
+        await SignInManager.SignInAsync(user, false);
         RedirectManager.RedirectTo(ReturnUrl);
     }
 

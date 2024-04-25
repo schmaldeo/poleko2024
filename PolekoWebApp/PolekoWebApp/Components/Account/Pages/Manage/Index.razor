@@ -1,7 +1,6 @@
 ﻿@page "/Account/Manage"
-
-@using Microsoft.AspNetCore.Identity
 @using PolekoWebApp.Data
+@using Microsoft.AspNetCore.Identity
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityUserAccessor UserAccessor
@@ -19,14 +18,14 @@
         @if (_roles.Contains("SuperAdmin"))
         {
             <span>SuperAdmin</span>
-        } 
+        }
         else if (_roles.Contains("Admin"))
         {
             <span>Admin</span>
         }
         else
         {
-            <span>User</span>            
+            <span>User</span>
         }
     }
 </MudText>
@@ -44,4 +43,5 @@
         _username = await UserManager.GetUserNameAsync(_user);
         _roles = await UserManager.GetRolesAsync(_user);
     }
+
 }

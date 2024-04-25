@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Net.Sockets;
 using System.Text.Json.Serialization;
@@ -17,6 +16,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
 public class Sensor
 {
+    private bool _error;
+
+    private bool _fetching;
+    
+    private SensorReading? _lastReading;
     [JsonIgnore] public int SensorId { get; set; }
     [JsonPropertyName("ip")] public string? IpAddress { get; set; }
     [JsonPropertyName("mac")] public string? MacAddress { get; set; }
@@ -26,13 +30,14 @@ public class Sensor
     [NotMapped] [JsonIgnore] public int? Rssi { get; set; }
     [NotMapped] [JsonIgnore] public TcpClient? TcpClient { get; set; }
     [JsonIgnore] public List<SensorReading> Readings { get; }
-    
+
     // all the PropertyHasChanged invoking is made so that the NavMenu knows when to rerender to change the sensor
     // status colour
-    private SensorReading? _lastReading;
-    [NotMapped] [JsonIgnore] public SensorReading LastReading 
+    [NotMapped]
+    [JsonIgnore]
+    public SensorReading LastReading
     {
-        get => _lastReading ?? new SensorReading {Humidity = 0, Temperature = 0};
+        get => _lastReading ?? new SensorReading { Humidity = 0, Temperature = 0 };
         set
         {
             PropertyHasChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(LastReading)));
@@ -40,7 +45,6 @@ public class Sensor
         }
     }
 
-    private bool _fetching;
     [NotMapped]
     [JsonIgnore]
     public bool Fetching
@@ -53,7 +57,6 @@ public class Sensor
         }
     }
 
-    private bool _error;
     [NotMapped]
     [JsonIgnore]
     public bool Error
@@ -65,28 +68,25 @@ public class Sensor
             _error = value;
         }
     }
-    
+
     public event PropertyChangedEventHandler? PropertyHasChanged;
-    
+
     public static bool operator ==(Sensor a, Sensor b)
     {
         return a.IpAddress == b.IpAddress && a.MacAddress == b.MacAddress;
     }
-    
+
     public static bool operator !=(Sensor a, Sensor b)
     {
         return a.IpAddress != b.IpAddress || a.MacAddress != b.MacAddress;
     }
-    
+
     public override bool Equals(object? obj)
     {
-        if (obj is Sensor other)
-        {
-            return IpAddress == other.IpAddress && MacAddress == other.MacAddress;
-        }
+        if (obj is Sensor other) return IpAddress == other.IpAddress && MacAddress == other.MacAddress;
         return false;
     }
-    
+
     public override int GetHashCode()
     {
         return HashCode.Combine(IpAddress, MacAddress);

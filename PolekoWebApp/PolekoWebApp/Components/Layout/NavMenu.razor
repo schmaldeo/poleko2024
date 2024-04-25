@@ -1,10 +1,8 @@
-﻿@rendermode InteractiveServer
-@using MudBlazor
-@using PolekoWebApp.Data
-@using Microsoft.EntityFrameworkCore
-@using Microsoft.EntityFrameworkCore.Internal
-@using PolekoWebApp.Components.Services
+﻿@using PolekoWebApp.Data
 @using System.ComponentModel
+@using Microsoft.EntityFrameworkCore
+@using PolekoWebApp.Components.Services
+@rendermode InteractiveServer
 
 @inject NavigationManager NavigationManager
 @inject IDbContextFactory<ApplicationDbContext> DbContextFactory
@@ -14,71 +12,71 @@
     <MudNavLink Href="/" Match="NavLinkMatch.All">Strona główna</MudNavLink>
     <AuthorizeView>
         <Authorized>
-                @if (Sensors is null)
+            @if (Sensors is null)
+            {
+                <span>Ładowanie czujników...</span>
+            }
+            else
+            {
+                @if (Sensors.Length > 0)
                 {
-                    <span>Ładowanie czujników...</span>
+                    <MudNavGroup Title="Czujniki" Expanded="true">
+                        @foreach (var sensor in Sensors)
+                        {
+                            <MudNavLink Href="@($"Device/{sensor.SensorId}")">
+                                <div class="d-flex flex-row align-center">
+                                    <span class="material-icons mr-2">@GetIconFromRssi(sensor)</span>
+                                    @if (sensor.Fetching)
+                                    {
+                                        <MudText Color="Color.Success" Typo="Typo.body2" Class="d-inline">
+                                            @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
+                                        </MudText>
+                                    }
+                                    else if (sensor.Error)
+                                    {
+                                        <MudText Color="Color.Error" Typo="Typo.body2" Class="d-inline">
+                                            @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
+                                        </MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2" Class="d-inline">
+                                            @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
+                                        </MudText>
+                                    }
+                                </div>
+                            </MudNavLink>
+                        }
+                    </MudNavGroup>
                 }
-                else
-                {
-                    @if (Sensors.Length > 0)
-                    {
-                        <MudNavGroup Title="Czujniki" Expanded="true">
-                            @foreach (var sensor in Sensors)
-                            {
-                                <MudNavLink Href="@($"Device/{sensor.SensorId}")">
-                                    <div class="d-flex flex-row align-center">
-                                        <span class="material-icons mr-2">@GetIconFromRssi(sensor)</span>
-                                        @if (sensor.Fetching)
-                                        {
-                                            <MudText Color="Color.Success" Typo="Typo.body2" Class="d-inline">
-                                                @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
-                                            </MudText>
-                                        }
-                                        else if (sensor.Error)
-                                        {
-                                            <MudText Color="Color.Error" Typo="Typo.body2" Class="d-inline">
-                                                @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
-                                            </MudText>
-                                        }
-                                        else
-                                        {
-                                            <MudText Typo="Typo.body2" Class="d-inline">
-                                                @((sensor.UsesDhcp ? sensor.MacAddress : sensor.IpAddress) ?? $"Czujnik {sensor.SensorId}")
-                                            </MudText>
-                                        }
-                                    </div>
-                                </MudNavLink>
-                            }
-                        </MudNavGroup>
-                    }
-                }
-                @* need to change context for nested AuthorizeViews to work *@
-                <AuthorizeView Roles="Admin, SuperAdmin" Context="addDevice">
-                    <Authorized>
-                        <MudNavLink Href="Device/Add">Dodaj nowy czujnik</MudNavLink>
-                    </Authorized>
-                </AuthorizeView>
+            }
+            @* need to change context for nested AuthorizeViews to work *@
+            <AuthorizeView Roles="Admin, SuperAdmin" Context="addDevice">
+                <Authorized>
+                    <MudNavLink Href="Device/Add">Dodaj nowy czujnik</MudNavLink>
+                </Authorized>
+            </AuthorizeView>
             @* border style to place the divider on the bottom just above the account settings *@
-            <MudDivider Style="border-style: none none solid none" />
+            <MudDivider Style="border-style: none none solid none"/>
             <MudNavLink Href="Account/Manage">@context.User.Identity?.Name</MudNavLink>
             <div class="mud-nav-item mud-ripple">
-            @* need to wrap this in divs because with NavLink it'd be highlighted all the time *@
-            <a class="mud-nav-link">
-                <div class="mud-nav-link-text">
-                <form action="Account/Logout" method="post">
-                    <AntiforgeryToken/>
-                    <input type="hidden" name="ReturnUrl" value="@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)"/>
-                    @* position absolute to have the button clip over the Logout text, otherwise it stays centered no 
+                @* need to wrap this in divs because with NavLink it'd be highlighted all the time *@
+                <a class="mud-nav-link">
+                    <div class="mud-nav-link-text">
+                        <form action="Account/Logout" method="post">
+                            <AntiforgeryToken/>
+                            <input type="hidden" name="ReturnUrl" value="@NavigationManager.ToBaseRelativePath(NavigationManager.Uri)"/>
+                            @* position absolute to have the button clip over the Logout text, otherwise it stays centered no 
                         matter what *@
-                    <button type="submit" style="height: 100%; width: 100%; position: absolute"></button>
-                </form>
-                Wyloguj się
-                </div>
-            </a>
+                            <button type="submit" style="height: 100%; width: 100%; position: absolute"></button>
+                        </form>
+                        Wyloguj się
+                    </div>
+                </a>
             </div>
         </Authorized>
         <NotAuthorized>
-            <MudDivider Style="border-style: none none solid none" />
+            <MudDivider Style="border-style: none none solid none"/>
             <MudNavLink Href="Account/Login" Class="justify-self-end">Zaloguj się</MudNavLink>
             <MudNavLink Href="Account/Register">Zarejestruj się</MudNavLink>
         </NotAuthorized>
@@ -106,7 +104,7 @@
     {
         await InvokeAsync(StateHasChanged);
     }
-    
+
     protected override async Task OnInitializedAsync()
     {
         Sensors = SensorService.Sensors.ToArray();
@@ -115,6 +113,8 @@
         {
             sensor.PropertyHasChanged += SensorPropertyChangedHandler;
         }
+
         await base.OnInitializedAsync();
     }
+
 }
