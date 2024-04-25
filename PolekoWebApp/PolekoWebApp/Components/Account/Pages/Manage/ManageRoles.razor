@@ -42,14 +42,14 @@ else
 }
 
 @code {
-    private MudDataGrid<UserRole> _dataGrid;
+    private MudDataGrid<UserRole>? _dataGrid;
     private List<UserRole>? _users;
 
     protected override async Task OnInitializedAsync()
     {
+        var users = new List<UserRole>();
         foreach (var user in UserManager.Users.ToArray())
         {
-            var users = new List<UserRole>();
             var roles = await UserManager.GetRolesAsync(user);
             string role;
             if (roles.Contains("SuperAdmin"))
