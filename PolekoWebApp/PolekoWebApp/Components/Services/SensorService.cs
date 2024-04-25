@@ -251,14 +251,24 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
         // if ip is null, update the IP, then if the sensor doesn't use DHCP also update its IP
         if (sensor.IpAddress is null)
         {
-            await UpdateDeviceIp(sensor, token);
-            if (!sensor.UsesDhcp)
+            var deviceFound = await UpdateDeviceIp(sensor, token);
+            if (deviceFound && !sensor.UsesDhcp)
             {
                 var dbContext = await dbContextFactory.CreateDbContextAsync(token);
                 var sensorInDb = await dbContext.Sensors.FirstAsync(x => x.MacAddress == sensor.MacAddress, token);
                 sensorInDb.IpAddress = sensor.IpAddress;
                 await dbContext.SaveChangesAsync(token);
             }
+        }
+        
+        // adding MAC address to sensor if it hasn't got one in case user ever switches to DHCP
+        if (sensor.MacAddress is null)
+        {
+            _ = UpdateDeviceMac(sensor);
+            var dbContext = await dbContextFactory.CreateDbContextAsync(token);
+            var sensorInDb = await dbContext.Sensors.FirstAsync(x => x.IpAddress == sensor.IpAddress, token);
+            sensorInDb.MacAddress = sensor.MacAddress;
+            await dbContext.SaveChangesAsync(token);
         }
 
         sensor.Fetching = true;
@@ -317,15 +327,32 @@ public class SensorService(IDbContextFactory<ApplicationDbContext> dbContextFact
     }
 
     /// <summary>
-    ///     Updates sensor's IP in <see cref="Sensors"/> if it's detected in the network
+    ///     Updates passed sensor's IP (not directly in the database) if it's detected in the network
     /// </summary>
     /// <param name="sensor">Sensor whose IP to update</param>
     /// <param name="token">CancellationToken</param>
-    public async Task UpdateDeviceIp(Sensor sensor, CancellationToken token)
+    /// <returns>Boolean indicating whether the sensor was found in the network or not</returns>
+    public async Task<bool> UpdateDeviceIp(Sensor sensor, CancellationToken token)
     {
         var sensors = await GetSensorsFromUdp(true, token);
         var foundSensor = sensors.FirstOrDefault(x => x.MacAddress == sensor.MacAddress);
-        if (foundSensor is not null) sensor.IpAddress = foundSensor.IpAddress;
+        if (foundSensor is null) return false;
+        sensor.IpAddress = foundSensor.IpAddress;
+        return true;
+    }
+
+    /// <summary>
+    ///     Updates passed sensor's MAC address (not directly in the database) if it's detected in the network
+    /// </summary>
+    /// <param name="sensor">Sensor whose MAC to update</param>
+    /// <param name="token">CancellationToken</param>
+    /// <returns>Boolean indicating whether the sensor was found in the network or not</returns>
+    public bool UpdateDeviceMac(Sensor sensor)
+    {
+        var foundSensor = SensorsInNetwork.FirstOrDefault(x => x.IpAddress == sensor.IpAddress);
+        if (foundSensor is null) return false;
+        sensor.MacAddress = foundSensor.MacAddress;
+        return true;
     }
 
     /// <summary>
