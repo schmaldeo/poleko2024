@@ -8,7 +8,7 @@ Application running on ESP32 makes use of [arduino-esp32](https://github.com/esp
 Web app is made using C#, making use of .NET 8 (latest version at the time of development) with Blazor as the UI 
 solution and MariaDB as the database solution.
 
-Manual in Polish is available [here](https://github.com/schmaldeo/poleko2024/blob/master/instrukcja.docx).
+Manual in Polish is available [here](https://github.com/schmaldeo/poleko2024/raw/master/instrukcja.docx).
 
 ### ESP32
 The ESP32 makes use of a proprietary weather probe. When it's connected to a wireless network, it can do 3 things:
